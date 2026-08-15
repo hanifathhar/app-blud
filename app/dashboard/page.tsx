@@ -102,10 +102,10 @@ function ProgressBar({ pagu, realisasi, label }: { pagu: number; realisasi: numb
 
 function DashboardSuperadmin() {
   const [data, setData] = useState<{
-    summary: { totalUpt: number; totalPagu: number; totalRealisasi: number; persentase: string; uptBaik: number; uptSedang: number; uptRendah: number };
+    summary: { totalUpt: number; totalPagu: number; totalPendapatan: number; totalBelanja: number; totalRealisasi: number; persentase: string; uptBaik: number; uptSedang: number; uptRendah: number };
     data: Array<{
       id: number; nm_upt: string; type: string;
-      totalPagu: number; totalRealisasi: number; persentase: number;
+      totalPagu: number; totalPendapatan: number; totalBelanja: number; totalRealisasi: number; persentase: number; sisa: number;
       sppPending: number; status_keuangan: string;
     }>;
   } | null>(null);
@@ -151,8 +151,8 @@ function DashboardSuperadmin() {
           {/* Summary Cards */}
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 16, marginBottom: 24 }}>
             <StatCard icon="🏥" label="Total UPT Aktif" value={`${data.summary.totalUpt}`} color="#2563EB" />
-            <StatCard icon="💰" label="Total Pagu Anggaran" value={formatRupiah(data.summary.totalPagu)} sub={`TA ${tahun}`} color="#10B981" />
-            <StatCard icon="📊" label="Total Realisasi" value={formatRupiah(data.summary.totalRealisasi)} sub={`${data.summary.persentase}% dari pagu`} color="#8B5CF6" />
+            <StatCard icon="💰" label="Anggaran Belanja" value={formatRupiah(data.summary.totalBelanja)} sub={`TA ${tahun}`} color="#10B981" />
+            <StatCard icon="📊" label="Realisasi Belanja" value={formatRupiah(data.summary.totalRealisasi)} sub={`${data.summary.persentase}% dari pagu`} color="#8B5CF6" />
             <StatCard icon="✅" label="Realisasi Baik (≥80%)" value={`${data.summary.uptBaik} UPT`} color="#10B981" />
             <StatCard icon="⚠️" label="Realisasi Rendah (<50%)" value={`${data.summary.uptRendah} UPT`} color="#F43F5E" />
           </div>
@@ -198,12 +198,16 @@ function DashboardSuperadmin() {
                     />
                   </div>
                   <div style={{ display: "flex", justifyContent: "space-between" }}>
-                    <span style={{ fontSize: 11, color: "#64748B" }}>
-                      {formatRupiah(upt.totalRealisasi)} / {formatRupiah(upt.totalPagu)}
-                    </span>
-                    <span style={{ fontSize: 12, fontWeight: 700, color: STATUS_COLOR[upt.status_keuangan] }}>
-                      {upt.persentase}%
-                    </span>
+                    <div style={{ fontSize: 11, color: "#64748B" }}>
+                      <div style={{ marginBottom: 2 }}>Belanja: <span style={{ fontWeight: 600, color: "#334155" }}>{formatRupiah(upt.totalBelanja)}</span></div>
+                      <div>Realisasi Belanja: <span style={{ fontWeight: 600, color: "#334155" }}>{formatRupiah(upt.totalRealisasi)}</span></div>
+                    </div>
+                    <div style={{ textAlign: "right", fontSize: 11, color: "#64748B" }}>
+                      <div style={{ marginBottom: 2 }}>Sisa Pagu (Belanja)</div>
+                      <div style={{ fontSize: 13, fontWeight: 700, color: upt.sisa < 0 ? "#F43F5E" : "#10B981" }}>
+                        {formatRupiah(upt.sisa)}
+                      </div>
+                    </div>
                   </div>
                   {upt.sppPending > 0 && (
                     <div style={{ marginTop: 8, fontSize: 11, color: "#F59E0B", display: "flex", alignItems: "center", gap: 4 }}>
@@ -226,7 +230,7 @@ function DashboardSuperadmin() {
 
 function DashboardUpt({ user }: { user: UserInfo }) {
   const [realisasi, setRealisasi] = useState<{
-    summary: { totalPagu: number; totalRealisasi: number; persentase: string; sisa: number };
+    summary: { totalPagu: number; totalPendapatan: number; totalBelanja: number; totalRealisasi: number; persentase: string; sisa: number };
     chartData: Array<{ bulan: number; realisasi: number; pagu: number }>;
   } | null>(null);
   const [sppData, setSppData] = useState<{ total: number; pending: number; disetujui: number }>({ total: 0, pending: 0, disetujui: 0 });
@@ -284,15 +288,15 @@ function DashboardUpt({ user }: { user: UserInfo }) {
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(175px, 1fr))", gap: 16, marginBottom: 24 }}>
             <StatCard
               icon="💰"
-              label="Total Pagu Anggaran"
-              value={formatRupiah(realisasi?.summary.totalPagu || 0)}
+              label="Anggaran Belanja"
+              value={formatRupiah(realisasi?.summary.totalBelanja || 0)}
               sub={`TA ${tahun}`}
               color="#2563EB"
-              onClick={() => router.push("/dashboard/perencanaan/dpa")}
+              onClick={() => router.push("/dashboard/perencanaan/penetapan-rba")}
             />
             <StatCard
               icon="📊"
-              label="Total Realisasi"
+              label="Realisasi Belanja"
               value={formatRupiah(realisasi?.summary.totalRealisasi || 0)}
               sub={`${realisasi?.summary.persentase || 0}%`}
               color="#10B981"

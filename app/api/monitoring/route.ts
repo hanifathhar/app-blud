@@ -27,15 +27,28 @@ export async function GET(req: Request) {
     upts.map(async (upt) => {
       const kd_upt = upt.kd_upt || "";
 
-      // Pagu dari DPA yang disetujui
-      const dpas = await prisma.dPA.aggregate({
+      // Pagu Pendapatan dari TblRbaPenetapan yang aktif
+      const rbaPendapatan = await prisma.tblRbaPenetapan.aggregate({
         where: {
-          kd_upt,
-          status: "disetujui",
-          ...(tahunData ? { tahun_id: tahunData.id } : {}),
+          kdUnit: kd_upt,
+          is_aktif: true,
+          tahun: tahun.toString(),
+          nmSubKegiatan: { equals: "PENDAPATAN", mode: "insensitive" }
         },
-        _sum: { pagu: true },
-        _count: { id: true },
+        _sum: { nilai: true },
+      });
+
+      // Pagu Belanja dari TblRbaPenetapan yang aktif
+      const rbaBelanja = await prisma.tblRbaPenetapan.aggregate({
+        where: {
+          kdUnit: kd_upt,
+          is_aktif: true,
+          tahun: tahun.toString(),
+          NOT: {
+            nmSubKegiatan: { equals: "PENDAPATAN", mode: "insensitive" }
+          }
+        },
+        _sum: { nilai: true },
       });
 
       // Realisasi tahun berjalan
@@ -49,17 +62,20 @@ export async function GET(req: Request) {
         where: { kd_upt, status: { in: ["diajukan", "diverifikasi"] } },
       });
 
-      const totalPagu = dpas._sum.pagu || 0;
+      const totalPendapatan = Number(rbaPendapatan._sum.nilai || 0);
+      const totalBelanja = Number(rbaBelanja._sum.nilai || 0);
+      const totalPagu = totalBelanja; // Total pagu untuk perhitungan realisasi (asumsi belanja)
       const totalRealisasi = realisasi._sum.realisasi || 0;
       const persentase = totalPagu > 0 ? (totalRealisasi / totalPagu) * 100 : 0;
 
       return {
         ...upt,
         totalPagu,
+        totalPendapatan,
+        totalBelanja,
         totalRealisasi,
         persentase: parseFloat(persentase.toFixed(2)),
         sisa: totalPagu - totalRealisasi,
-        jumlahDpa: dpas._count.id,
         sppPending,
         status_keuangan:
           persentase >= 80
@@ -73,6 +89,8 @@ export async function GET(req: Request) {
 
   // Summary total semua UPT
   const totalPaguAll = uptStats.reduce((s, u) => s + u.totalPagu, 0);
+  const totalPendapatanAll = uptStats.reduce((s, u) => s + u.totalPendapatan, 0);
+  const totalBelanjaAll = uptStats.reduce((s, u) => s + u.totalBelanja, 0);
   const totalRealisasiAll = uptStats.reduce((s, u) => s + u.totalRealisasi, 0);
 
   return NextResponse.json({
@@ -80,6 +98,8 @@ export async function GET(req: Request) {
     summary: {
       totalUpt: upts.length,
       totalPagu: totalPaguAll,
+      totalPendapatan: totalPendapatanAll,
+      totalBelanja: totalBelanjaAll,
       totalRealisasi: totalRealisasiAll,
       persentase:
         totalPaguAll > 0

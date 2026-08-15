@@ -22,19 +22,26 @@ export async function GET(req: Request) {
     orderBy: [{ bulan: "asc" }],
   });
 
-  // Ambil DPA yang sudah disetujui untuk total pagu
-  const dpaWhere: Record<string, unknown> = { status: "disetujui" };
-  const tahunData = await prisma.tahunAnggaran.findFirst({ where: { tahun } });
-  if (tahunData) dpaWhere.tahun_id = tahunData.id;
-  if (user.role !== "superadmin") dpaWhere.kd_upt = user.kd_upt;
-  else if (kd_upt) dpaWhere.kd_upt = kd_upt;
+  // Ambil TblRbaPenetapan yang aktif untuk total pagu
+  const rbaWhere: Record<string, unknown> = { is_aktif: true, tahun: tahun.toString() };
+  if (user.role !== "superadmin") rbaWhere.kdUnit = user.kd_upt;
+  else if (kd_upt) rbaWhere.kdUnit = kd_upt;
 
-  const dpas = await prisma.dPA.findMany({
-    where: dpaWhere,
-    select: { pagu: true, kd_program: true, kd_upt: true },
+  // Ambil TblRbaPenetapan yang aktif untuk pagu Pendapatan
+  const rbaPendapatan = await prisma.tblRbaPenetapan.aggregate({
+    where: { ...rbaWhere, nmSubKegiatan: { equals: "PENDAPATAN", mode: "insensitive" } },
+    _sum: { nilai: true },
   });
 
-  const totalPagu = dpas.reduce((s, d) => s + (d.pagu || 0), 0);
+  // Ambil TblRbaPenetapan yang aktif untuk pagu Belanja
+  const rbaBelanja = await prisma.tblRbaPenetapan.aggregate({
+    where: { ...rbaWhere, NOT: { nmSubKegiatan: { equals: "PENDAPATAN", mode: "insensitive" } } },
+    _sum: { nilai: true },
+  });
+
+  const totalPendapatan = Number(rbaPendapatan._sum.nilai || 0);
+  const totalBelanja = Number(rbaBelanja._sum.nilai || 0);
+  const totalPagu = totalBelanja;
   const totalRealisasi = realisasi.reduce((s, r) => s + (r.realisasi || 0), 0);
 
   // Rekap per bulan (1-12)
@@ -54,6 +61,8 @@ export async function GET(req: Request) {
     data: realisasi,
     summary: {
       totalPagu,
+      totalPendapatan,
+      totalBelanja,
       totalRealisasi,
       persentase: totalPagu > 0 ? ((totalRealisasi / totalPagu) * 100).toFixed(2) : "0",
       sisa: totalPagu - totalRealisasi,
