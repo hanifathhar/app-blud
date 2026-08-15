@@ -108,22 +108,48 @@ export async function GET(req: NextRequest) {
       });
     });
 
-    // Lookup Rekening Names
-    const rek2Data = await prisma.msRek2.findMany({
-      where: {
-        OR: Array.from(rek2Set).map(kd => ({
-          kd_rek2: { startsWith: kd } // Use startsWith because of Char(4) trailing spaces
-        }))
-      }
-    });
+    let rek2Data;
+    let rek3Data;
 
-    const rek3Data = await prisma.msRek3.findMany({
-      where: {
-        OR: Array.from(rek3Set).map(kd => ({
-          kd_rek3: kd
-        }))
-      }
-    });
+    if (jenis === 'ringkasan') {
+      rek2Data = await prisma.msRek2.findMany({
+        where: {
+          OR: [
+            { kd_rek2: { startsWith: '4' } },
+            { kd_rek2: { startsWith: '5' } },
+            { kd_rek2: { startsWith: '6' } }
+          ]
+        },
+        orderBy: { kd_rek2: 'asc' }
+      });
+
+      rek3Data = await prisma.msRek3.findMany({
+        where: {
+          OR: [
+            { kd_rek3: { startsWith: '4' } },
+            { kd_rek3: { startsWith: '5' } },
+            { kd_rek3: { startsWith: '6' } }
+          ]
+        },
+        orderBy: { kd_rek3: 'asc' }
+      });
+    } else {
+      rek2Data = await prisma.msRek2.findMany({
+        where: {
+          OR: Array.from(rek2Set).length > 0 ? Array.from(rek2Set).map(kd => ({
+            kd_rek2: { startsWith: kd } // Use startsWith because of Char(4) trailing spaces
+          })) : [{ kd_rek2: 'INVALID_EMPTY' }]
+        }
+      });
+
+      rek3Data = await prisma.msRek3.findMany({
+        where: {
+          OR: Array.from(rek3Set).length > 0 ? Array.from(rek3Set).map(kd => ({
+            kd_rek3: kd
+          })) : [{ kd_rek3: 'INVALID_EMPTY' }]
+        }
+      });
+    }
 
     const rek2Dict: Record<string, string> = {};
     rek2Data.forEach(r => {

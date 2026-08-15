@@ -2,10 +2,11 @@
 
 import React, { useState, useEffect, use } from "react";
 import { ArrowLeft, Printer } from "lucide-react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 
 export default function CetakRKAPage({ params }: { params: Promise<{ kdUnit: string, nomor_penetapan: string }> }) {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const resolvedParams = use(params);
   const kdUnit = resolvedParams.kdUnit;
   const nomor_penetapan = decodeURIComponent(resolvedParams.nomor_penetapan);
@@ -14,13 +15,12 @@ export default function CetakRKAPage({ params }: { params: Promise<{ kdUnit: str
   const [kdSubKegiatan, setKdSubKegiatan] = useState<string>("");
 
   useEffect(() => {
-    // get query param on client side
-    const urlParams = new URLSearchParams(window.location.search);
-    const j = urlParams.get("jenis");
-    const ksk = urlParams.get("kdSubKegiatan");
+    // get query param on client side using useSearchParams
+    const j = searchParams.get("jenis");
+    const ksk = searchParams.get("kdSubKegiatan");
     if (j) setJenis(j);
     if (ksk) setKdSubKegiatan(ksk);
-  }, []);
+  }, [searchParams]);
 
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState<any>(null);
@@ -36,9 +36,8 @@ export default function CetakRKAPage({ params }: { params: Promise<{ kdUnit: str
           setUserTahun(userData.user.tahun);
         }
 
-        const urlParams = new URLSearchParams(window.location.search);
-        const j = urlParams.get("jenis") || "ringkasan";
-        const ksk = urlParams.get("kdSubKegiatan") || "";
+        const j = searchParams.get("jenis") || "ringkasan";
+        const ksk = searchParams.get("kdSubKegiatan") || "";
 
         const res = await fetch(`/api/perencanaan/dokumen-anggaran/cetak?kdUnit=${kdUnit}&nomor_penetapan=${encodeURIComponent(nomor_penetapan)}&jenis=${j}&kdSubKegiatan=${ksk}`);
         if (res.ok) {
@@ -54,7 +53,7 @@ export default function CetakRKAPage({ params }: { params: Promise<{ kdUnit: str
       }
     };
     fetchData();
-  }, [kdUnit, nomor_penetapan]);
+  }, [kdUnit, nomor_penetapan, searchParams]);
 
   useEffect(() => {
     if (!loading && data) {
@@ -73,20 +72,90 @@ export default function CetakRKAPage({ params }: { params: Promise<{ kdUnit: str
   }
 
   // --- Grouping Logic ---
-  const groups: any = {};
-  let totalBelanja = 0;
+  const ringkasanGroups: any = {
+    '4': { kd: '4', nama: 'PENDAPATAN DAERAH', total: 0, children: {} },
+    '5': { kd: '5', nama: 'BELANJA DAERAH', total: 0, children: {} },
+    '6': { kd: '6', nama: 'PEMBIAYAAN DAERAH', total: 0, children: {} }
+  };
   
+  const rkaGroups: any = {};
+  let totalBelanjaRKA = 0;
+  
+  // Pre-populate Ringkasan groups with all available rek2 and rek3
+  if (jenis === 'ringkasan' && data.rek2Dict && data.rek3Dict) {
+    Object.keys(data.rek2Dict).forEach(kd2 => {
+      const kd1 = kd2.substring(0, 1);
+      if (['4', '5', '6'].includes(kd1)) {
+        if (!ringkasanGroups[kd1].children[kd2]) {
+          ringkasanGroups[kd1].children[kd2] = {
+            kd: kd2,
+            nama: data.rek2Dict[kd2],
+            total: 0,
+            children: {}
+          };
+        }
+      }
+    });
+    Object.keys(data.rek3Dict).forEach(kd3 => {
+      const kd1 = kd3.substring(0, 1);
+      const kd2 = kd3.substring(0, 3);
+      if (['4', '5', '6'].includes(kd1)) {
+        // Pastikan parent kd2 ada (meski mungkin data dari API tidak sinkron)
+        if (!ringkasanGroups[kd1].children[kd2]) {
+          ringkasanGroups[kd1].children[kd2] = {
+            kd: kd2,
+            nama: data.rek2Dict[kd2] || "MENDAPATKAN DATA",
+            total: 0,
+            children: {}
+          };
+        }
+        if (!ringkasanGroups[kd1].children[kd2].children[kd3]) {
+          ringkasanGroups[kd1].children[kd2].children[kd3] = {
+            kd: kd3,
+            nama: data.rek3Dict[kd3],
+            total: 0
+          };
+        }
+      }
+    });
+  }
+
   const filteredRincian = data.penetapan.rincian || [];
 
   filteredRincian.forEach((r: any) => {
     if (!r.kd_rek6) return;
     
+    const kd1 = r.kd_rek6.substring(0, 1);
     const kd2 = r.kd_rek6.length >= 3 ? r.kd_rek6.substring(0, 3) : r.kd_rek6;
     const kd3 = r.kd_rek6.length >= 6 ? r.kd_rek6.substring(0, 6) : r.kd_rek6;
     const kd6 = r.kd_rek6;
+    const val = Number(r.total) || 0;
 
-    if (!groups[kd2]) {
-      groups[kd2] = { 
+    // --- Logic for Ringkasan ---
+    if (['4', '5', '6'].includes(kd1)) {
+      if (!ringkasanGroups[kd1].children[kd2]) {
+        ringkasanGroups[kd1].children[kd2] = {
+          kd: kd2,
+          nama: data.rek2Dict[kd2] || "MENDAPATKAN DATA",
+          total: 0,
+          children: {}
+        };
+      }
+      if (!ringkasanGroups[kd1].children[kd2].children[kd3]) {
+        ringkasanGroups[kd1].children[kd2].children[kd3] = {
+          kd: kd3,
+          nama: data.rek3Dict[kd3] || "MENDAPATKAN DATA",
+          total: 0
+        };
+      }
+      ringkasanGroups[kd1].children[kd2].children[kd3].total += val;
+      ringkasanGroups[kd1].children[kd2].total += val;
+      ringkasanGroups[kd1].total += val;
+    }
+
+    // --- Logic for RKA ---
+    if (!rkaGroups[kd2]) {
+      rkaGroups[kd2] = { 
         kd: kd2, 
         nama: data.rek2Dict[kd2] || "MENDAPATKAN DATA", 
         total: 0, 
@@ -94,8 +163,8 @@ export default function CetakRKAPage({ params }: { params: Promise<{ kdUnit: str
       };
     }
     
-    if (!groups[kd2].children[kd3]) {
-      groups[kd2].children[kd3] = { 
+    if (!rkaGroups[kd2].children[kd3]) {
+      rkaGroups[kd2].children[kd3] = { 
         kd: kd3, 
         nama: data.rek3Dict[kd3] || "MENDAPATKAN DATA", 
         total: 0, 
@@ -103,8 +172,8 @@ export default function CetakRKAPage({ params }: { params: Promise<{ kdUnit: str
       };
     }
 
-    if (!groups[kd2].children[kd3].children[kd6]) {
-      groups[kd2].children[kd3].children[kd6] = {
+    if (!rkaGroups[kd2].children[kd3].children[kd6]) {
+      rkaGroups[kd2].children[kd3].children[kd6] = {
         kd: kd6,
         nama: r.nm_rek6,
         total: 0,
@@ -112,22 +181,235 @@ export default function CetakRKAPage({ params }: { params: Promise<{ kdUnit: str
       }
     }
 
-    const val = Number(r.total) || 0;
-    groups[kd2].children[kd3].children[kd6].items.push(r);
-    groups[kd2].children[kd3].children[kd6].total += val;
-    groups[kd2].children[kd3].total += val;
-    groups[kd2].total += val;
-    totalBelanja += val;
+    rkaGroups[kd2].children[kd3].children[kd6].items.push(r);
+    rkaGroups[kd2].children[kd3].children[kd6].total += val;
+    rkaGroups[kd2].children[kd3].total += val;
+    rkaGroups[kd2].total += val;
+    totalBelanjaRKA += val;
   });
 
   const { penetapan, metadata } = data;
 
-  // Render Rows
-  const renderRows = () => {
+  const formatCurrency = (val: number) => {
+    if (val < 0) {
+      return '(' + new Intl.NumberFormat('id-ID', { minimumFractionDigits: 2 }).format(Math.abs(val)) + ')';
+    }
+    return new Intl.NumberFormat('id-ID', { minimumFractionDigits: 2 }).format(val);
+  };
+
+  // Render Rows for Ringkasan
+  const renderRingkasanRows = () => {
+    const rows: React.JSX.Element[] = [];
+
+    // 1. PENDAPATAN
+    const p = ringkasanGroups['4'];
+    rows.push(
+      <tr key="4">
+        <td style={styles.tdBold}>4</td>
+        <td style={styles.tdBold}>PENDAPATAN DAERAH</td>
+        <td style={styles.tdRightBold}>{formatCurrency(p.total)}</td>
+      </tr>
+    );
+    Object.keys(p.children).sort().forEach(kd2 => {
+      const g2 = p.children[kd2];
+      rows.push(
+        <tr key={kd2}>
+          <td style={styles.tdBold}>{kd2}</td>
+          <td style={styles.tdBold}>{g2.nama}</td>
+          <td style={styles.tdRightBold}>{formatCurrency(g2.total)}</td>
+        </tr>
+      );
+      Object.keys(g2.children).sort().forEach(kd3 => {
+        const g3 = g2.children[kd3];
+        rows.push(
+          <tr key={kd3}>
+            <td style={styles.td}>{kd3}</td>
+            <td style={styles.td}>{g3.nama}</td>
+            <td style={styles.tdRight}>{formatCurrency(g3.total)}</td>
+          </tr>
+        );
+      });
+    });
+
+    const totalPendapatan = p.total;
+    rows.push(
+      <tr key="jml-pendapatan">
+        <td style={styles.tdBold}></td>
+        <td style={styles.tdBold}>JUMLAH PENDAPATAN</td>
+        <td style={styles.tdRightBold}>{formatCurrency(totalPendapatan)}</td>
+      </tr>
+    );
+
+    rows.push(
+      <tr key="blank-1">
+        <td colSpan={3} style={{ border: '1px solid #000', padding: '4px' }}></td>
+      </tr>
+    );
+
+    // 2. BELANJA
+    const b = ringkasanGroups['5'];
+    rows.push(
+      <tr key="5">
+        <td style={styles.tdBold}>5</td>
+        <td style={styles.tdBold}>BELANJA DAERAH</td>
+        <td style={styles.tdRightBold}>{formatCurrency(b.total)}</td>
+      </tr>
+    );
+    Object.keys(b.children).sort().forEach(kd2 => {
+      const g2 = b.children[kd2];
+      rows.push(
+        <tr key={kd2}>
+          <td style={styles.tdBold}>{kd2}</td>
+          <td style={styles.tdBold}>{g2.nama}</td>
+          <td style={styles.tdRightBold}>{formatCurrency(g2.total)}</td>
+        </tr>
+      );
+      Object.keys(g2.children).sort().forEach(kd3 => {
+        const g3 = g2.children[kd3];
+        rows.push(
+          <tr key={kd3}>
+            <td style={styles.td}>{kd3}</td>
+            <td style={styles.td}>{g3.nama}</td>
+            <td style={styles.tdRight}>{formatCurrency(g3.total)}</td>
+          </tr>
+        );
+      });
+    });
+
+    const totalBelanja = b.total;
+    rows.push(
+      <tr key="jml-belanja">
+        <td style={styles.tdBold}></td>
+        <td style={styles.tdBold}>JUMLAH BELANJA</td>
+        <td style={styles.tdRightBold}>{formatCurrency(totalBelanja)}</td>
+      </tr>
+    );
+
+    const surplusDefisit = totalPendapatan - totalBelanja;
+    rows.push(
+      <tr key="surplus">
+        <td style={styles.tdBold}></td>
+        <td style={styles.tdBold}>SURPLUS/(DEFISIT)</td>
+        <td style={styles.tdRightBold}>{formatCurrency(surplusDefisit)}</td>
+      </tr>
+    );
+
+    rows.push(
+      <tr key="blank-2">
+        <td colSpan={3} style={{ border: '1px solid #000', padding: '4px' }}></td>
+      </tr>
+    );
+
+    // 3. PEMBIAYAAN
+    const pmb = ringkasanGroups['6'];
+    // In some systems it's numbered 3, but the code is 6. We will stick to 6 for consistency.
+    rows.push(
+      <tr key="6">
+        <td style={styles.tdBold}>6</td>
+        <td style={styles.tdBold}>PEMBIAYAAN DAERAH</td>
+        <td style={styles.tdRightBold}></td>
+      </tr>
+    );
+
+    const pmbTerima = pmb.children['6.1']?.total || 0;
+    if (pmb.children['6.1']) {
+      const g2 = pmb.children['6.1'];
+      rows.push(
+        <tr key="6.1">
+          <td style={styles.tdBold}>6.1</td>
+          <td style={styles.tdBold}>{g2.nama || 'PENERIMAAN PEMBIAYAAN'}</td>
+          <td style={styles.tdRightBold}>{formatCurrency(g2.total)}</td>
+        </tr>
+      );
+      Object.keys(g2.children).sort().forEach(kd3 => {
+        const g3 = g2.children[kd3];
+        rows.push(
+          <tr key={kd3}>
+            <td style={styles.td}>{kd3}</td>
+            <td style={styles.td}>{g3.nama}</td>
+            <td style={styles.tdRight}>{formatCurrency(g3.total)}</td>
+          </tr>
+        );
+      });
+    }
+
+    rows.push(
+      <tr key="jml-penerimaan">
+        <td style={styles.tdBold}></td>
+        <td style={styles.tdBold}>JUMLAH PENERIMAAN PEMBIAYAAN</td>
+        <td style={styles.tdRightBold}>{formatCurrency(pmbTerima)}</td>
+      </tr>
+    );
+
+    rows.push(
+      <tr key="blank-3">
+        <td colSpan={3} style={{ border: '1px solid #000', padding: '4px' }}></td>
+      </tr>
+    );
+
+    const pmbKeluar = pmb.children['6.2']?.total || 0;
+    if (pmb.children['6.2']) {
+      const g2 = pmb.children['6.2'];
+      rows.push(
+        <tr key="6.2">
+          <td style={styles.tdBold}>6.2</td>
+          <td style={styles.tdBold}>{g2.nama || 'PENGELUARAN PEMBIAYAAN'}</td>
+          <td style={styles.tdRightBold}>{formatCurrency(g2.total)}</td>
+        </tr>
+      );
+      Object.keys(g2.children).sort().forEach(kd3 => {
+        const g3 = g2.children[kd3];
+        rows.push(
+          <tr key={kd3}>
+            <td style={styles.td}>{kd3}</td>
+            <td style={styles.td}>{g3.nama}</td>
+            <td style={styles.tdRight}>{formatCurrency(g3.total)}</td>
+          </tr>
+        );
+      });
+    }
+
+    rows.push(
+      <tr key="jml-pengeluaran">
+        <td style={styles.tdBold}></td>
+        <td style={styles.tdBold}>JUMLAH PENGELUARAN PEMBIAYAAN</td>
+        <td style={styles.tdRightBold}>{formatCurrency(pmbKeluar)}</td>
+      </tr>
+    );
+
+    rows.push(
+      <tr key="blank-4">
+        <td colSpan={3} style={{ border: '1px solid #000', padding: '4px' }}></td>
+      </tr>
+    );
+
+    const netto = pmbTerima - pmbKeluar;
+    rows.push(
+      <tr key="netto">
+        <td style={styles.tdBold}></td>
+        <td style={styles.tdBold}>PEMBIAYAAN NETTO</td>
+        <td style={styles.tdRightBold}>{formatCurrency(netto)}</td>
+      </tr>
+    );
+
+    const silpa = surplusDefisit + netto;
+    rows.push(
+      <tr key="silpa">
+        <td style={styles.tdBold}></td>
+        <td style={styles.tdBold}>SISA LEBIH PEMBIAYAAN ANGGARAN TAHUN BERKENAAN (SILPA)</td>
+        <td style={styles.tdRightBold}>{formatCurrency(silpa)}</td>
+      </tr>
+    );
+
+    return rows;
+  };
+
+  // Render Rows for RKA
+  const renderRKARows = () => {
     const rows: React.JSX.Element[] = [];
     
-    Object.keys(groups).sort().forEach(kd2 => {
-      const g2 = groups[kd2];
+    Object.keys(rkaGroups).sort().forEach(kd2 => {
+      const g2 = rkaGroups[kd2];
       rows.push(
         <tr key={kd2}>
           <td style={styles.tdBold}>{kd2}</td>
@@ -135,7 +417,7 @@ export default function CetakRKAPage({ params }: { params: Promise<{ kdUnit: str
           <td style={styles.tdCenter}></td>
           <td style={styles.tdCenter}></td>
           <td style={styles.tdRight}></td>
-          <td style={styles.tdRightBold}>{new Intl.NumberFormat('id-ID', { minimumFractionDigits: 2 }).format(g2.total)}</td>
+          <td style={styles.tdRightBold}>{formatCurrency(g2.total)}</td>
         </tr>
       );
 
@@ -148,7 +430,7 @@ export default function CetakRKAPage({ params }: { params: Promise<{ kdUnit: str
             <td style={styles.tdCenter}></td>
             <td style={styles.tdCenter}></td>
             <td style={styles.tdRight}></td>
-            <td style={styles.tdRightBold}>{new Intl.NumberFormat('id-ID', { minimumFractionDigits: 2 }).format(g3.total)}</td>
+            <td style={styles.tdRightBold}>{formatCurrency(g3.total)}</td>
           </tr>
         );
 
@@ -161,7 +443,7 @@ export default function CetakRKAPage({ params }: { params: Promise<{ kdUnit: str
               <td style={styles.tdCenter}></td>
               <td style={styles.tdCenter}></td>
               <td style={styles.tdRight}></td>
-              <td style={styles.tdRightBold}>{new Intl.NumberFormat('id-ID', { minimumFractionDigits: 2 }).format(g6.total)}</td>
+              <td style={styles.tdRightBold}>{formatCurrency(g6.total)}</td>
             </tr>
           );
 
@@ -172,8 +454,8 @@ export default function CetakRKAPage({ params }: { params: Promise<{ kdUnit: str
                 <td style={styles.td}>{item.uraian}</td>
                 <td style={styles.tdCenter}>{Number(item.volume) || ""}</td>
                 <td style={styles.tdCenter}>{item.satuan}</td>
-                <td style={styles.tdRight}>{item.nilai ? new Intl.NumberFormat('id-ID', { minimumFractionDigits: 2 }).format(item.nilai) : ""}</td>
-                <td style={styles.tdRight}>{item.total ? new Intl.NumberFormat('id-ID', { minimumFractionDigits: 2 }).format(item.total) : ""}</td>
+                <td style={styles.tdRight}>{item.nilai ? formatCurrency(item.nilai) : ""}</td>
+                <td style={styles.tdRight}>{item.total ? formatCurrency(item.total) : ""}</td>
               </tr>
             );
           });
@@ -195,13 +477,15 @@ export default function CetakRKAPage({ params }: { params: Promise<{ kdUnit: str
             visibility: visible;
           }
           #print-area {
-            position: absolute;
-            left: 0;
-            top: 0;
-            width: 100%;
-            background: #fff;
-            padding: 0;
-            margin: 0;
+            position: absolute !important;
+            left: 0 !important;
+            top: 0 !important;
+            width: 100% !important;
+            background: #fff !important;
+            padding: 0 !important;
+            margin: 0 !important;
+            border: none !important;
+            box-shadow: none !important;
           }
           @page {
             size: A4 portrait;
@@ -312,47 +596,69 @@ export default function CetakRKAPage({ params }: { params: Promise<{ kdUnit: str
           </table>
         )}
 
-        <table style={{ width: "100%", borderCollapse: "collapse", border: "1px solid #000", borderTop: "none" }}>
-          <thead>
-            <tr>
-              <td colSpan={6} style={{ textAlign: "center", fontWeight: "bold", fontSize: "13px", padding: "8px", borderBottom: "1px solid #000" }}>
-                {jenis === 'ringkasan' 
-                  ? <>RINGKASAN ANGGARAN PENDAPATAN, BELANJA, PEMBIAYAAN<br/>BADAN LAYANAN UMUM DAERAH</>
-                  : <>RENCANA KERJA DAN ANGGARAN<br/>SUB KEGIATAN BADAN LAYANAN UMUM DAERAH</>
-                }
-              </td>
-            </tr>
-            <tr>
-              <th style={{ ...styles.th, width: "20%" }} rowSpan={2}>Kode<br/>Rekening</th>
-              <th style={{ ...styles.th, width: "35%" }} rowSpan={2}>Uraian</th>
-              <th style={{ ...styles.th, width: "30%" }} colSpan={3}>Rincian Perhitungan</th>
-              <th style={{ ...styles.th, width: "15%" }} rowSpan={2}>Jumlah<br/>(Rp)</th>
-            </tr>
-            <tr>
-              <th style={styles.thSub}>Volume</th>
-              <th style={styles.thSub}>Satuan</th>
-              <th style={styles.thSub}>Harga</th>
-            </tr>
-            <tr>
-              <th style={styles.thColNum}>1</th>
-              <th style={styles.thColNum}>2</th>
-              <th style={styles.thColNum}>3</th>
-              <th style={styles.thColNum}>4</th>
-              <th style={styles.thColNum}>5</th>
-              <th style={styles.thColNum}>6 = 3 x 5</th>
-            </tr>
-          </thead>
-          <tbody>
-            {renderRows()}
-            <tr>
-              <td colSpan={2} style={{ ...styles.tdBold, textAlign: "center" }}>JUMLAH</td>
-              <td style={styles.tdCenter}></td>
-              <td style={styles.tdCenter}></td>
-              <td style={styles.tdRight}></td>
-              <td style={styles.tdRightBold}>{new Intl.NumberFormat('id-ID', { minimumFractionDigits: 2 }).format(totalBelanja)}</td>
-            </tr>
-          </tbody>
-        </table>
+        {jenis === 'ringkasan' ? (
+          <table style={{ width: "100%", borderCollapse: "collapse", border: "1px solid #000", borderTop: "none" }}>
+            <thead>
+              <tr>
+                <td colSpan={3} style={{ textAlign: "center", fontWeight: "bold", fontSize: "13px", padding: "8px", borderBottom: "1px solid #000" }}>
+                  RINGKASAN ANGGARAN PENDAPATAN, BELANJA, PEMBIAYAAN<br/>BADAN LAYANAN UMUM DAERAH
+                </td>
+              </tr>
+              <tr>
+                <th style={{ ...styles.th, width: "15%" }}>NOMOR<br/>URUT</th>
+                <th style={{ ...styles.th, width: "60%" }}>URAIAN</th>
+                <th style={{ ...styles.th, width: "25%" }}>JUMLAH<br/>(Rp)</th>
+              </tr>
+              <tr>
+                <th style={styles.thColNum}>1</th>
+                <th style={styles.thColNum}>2</th>
+                <th style={styles.thColNum}>3</th>
+              </tr>
+            </thead>
+            <tbody>
+              {renderRingkasanRows()}
+            </tbody>
+          </table>
+        ) : (
+          <table style={{ width: "100%", borderCollapse: "collapse", border: "1px solid #000", borderTop: "none" }}>
+            <thead>
+              <tr>
+                <td colSpan={6} style={{ textAlign: "center", fontWeight: "bold", fontSize: "13px", padding: "8px", borderBottom: "1px solid #000" }}>
+                  RENCANA KERJA DAN ANGGARAN<br/>SUB KEGIATAN BADAN LAYANAN UMUM DAERAH
+                </td>
+              </tr>
+              <tr>
+                <th style={{ ...styles.th, width: "20%" }} rowSpan={2}>Kode<br/>Rekening</th>
+                <th style={{ ...styles.th, width: "35%" }} rowSpan={2}>Uraian</th>
+                <th style={{ ...styles.th, width: "30%" }} colSpan={3}>Rincian Perhitungan</th>
+                <th style={{ ...styles.th, width: "15%" }} rowSpan={2}>Jumlah<br/>(Rp)</th>
+              </tr>
+              <tr>
+                <th style={styles.thSub}>Volume</th>
+                <th style={styles.thSub}>Satuan</th>
+                <th style={styles.thSub}>Harga</th>
+              </tr>
+              <tr>
+                <th style={styles.thColNum}>1</th>
+                <th style={styles.thColNum}>2</th>
+                <th style={styles.thColNum}>3</th>
+                <th style={styles.thColNum}>4</th>
+                <th style={styles.thColNum}>5</th>
+                <th style={styles.thColNum}>6 = 3 x 5</th>
+              </tr>
+            </thead>
+            <tbody>
+              {renderRKARows()}
+              <tr>
+                <td colSpan={2} style={{ ...styles.tdBold, textAlign: "center" }}>JUMLAH</td>
+                <td style={styles.tdCenter}></td>
+                <td style={styles.tdCenter}></td>
+                <td style={styles.tdRight}></td>
+                <td style={styles.tdRightBold}>{formatCurrency(totalBelanjaRKA)}</td>
+              </tr>
+            </tbody>
+          </table>
+        )}
       </div>
     </div>
   );
@@ -372,3 +678,4 @@ const styles: Record<string, React.CSSProperties> = {
   tdRight: { border: "1px solid #000", padding: "4px 6px", textAlign: "right", verticalAlign: "top" },
   tdRightBold: { border: "1px solid #000", padding: "4px 6px", textAlign: "right", fontWeight: "bold", verticalAlign: "top" }
 };
+
