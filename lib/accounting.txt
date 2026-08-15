@@ -1,0 +1,120 @@
+import { Prisma } from "@prisma/client";
+
+type DetailJurnal = {
+  kode_akun: string;
+  debit?: number;
+  kredit?: number;
+};
+
+type CreateJournalParams = {
+  tx: Prisma.TransactionClient;
+  no_jurnal: string;
+  tanggal?: Date;
+  referensi?: string;
+  keterangan: string;
+  dibuatOleh?: number;
+  detail: DetailJurnal[];
+};
+
+type UpdateJournalParams = {
+  tx: Prisma.TransactionClient;
+  noJurnal: string;
+  tanggal?: Date;
+  referensi?: string;
+  keterangan: string;
+  dibuatOleh?: number;
+  detail: DetailJurnal[];
+};
+
+export async function createJournal({
+  tx,
+  no_jurnal,
+  tanggal = new Date(),
+  referensi,
+  keterangan,
+  dibuatOleh,
+  detail,
+}: CreateJournalParams) {
+
+  const totalDebit = detail.reduce(
+    (a, b) => a + Number(b.debit ?? 0),
+    0
+  );
+
+  const totalKredit = detail.reduce(
+    (a, b) => a + Number(b.kredit ?? 0),
+    0
+  );
+
+  if (totalDebit !== totalKredit) {
+    throw new Error(
+      `Jurnal tidak balance.
+        Debit : ${totalDebit}
+        Kredit : ${totalKredit}`
+    );
+  }
+
+  return tx.jurnal.create({
+    data: {
+      no_jurnal,
+      tanggal,
+      referensi,
+      keterangan,
+      dibuatOleh,
+
+      detail: {
+        create: detail.map((d) => ({
+          kode_akun: d.kode_akun,
+          debit: d.debit ?? 0,
+          kredit: d.kredit ?? 0,
+        })),
+      },
+    },
+  });
+}
+
+
+export async function updateJournal({
+  tx,
+  noJurnal,
+  tanggal = new Date(),
+  referensi,
+  keterangan,
+  dibuatOleh,
+  detail,
+}: UpdateJournalParams) {
+
+  const totalDebit = detail.reduce((t, d) => t + Number(d.debit ?? 0), 0);
+  const totalKredit = detail.reduce((t, d) => t + Number(d.kredit ?? 0), 0);
+
+  if (totalDebit !== totalKredit) {
+    throw new Error("Jurnal tidak balance.");
+  }
+
+  // Hapus detail lama
+  await tx.detailJurnal.deleteMany({
+    where: {
+      no_jurnal: noJurnal,
+    },
+  });
+
+  // Update header + buat detail baru
+  await tx.jurnal.update({
+    where: {
+      no_jurnal: noJurnal,
+    },
+    data: {
+      tanggal,
+      referensi,
+      keterangan,
+      dibuatOleh,
+      detail: {
+        create: detail.map((d) => ({
+          kode_akun: d.kode_akun,
+          debit: d.debit ?? 0,
+          kredit: d.kredit ?? 0,
+        })),
+      },
+    },
+  });
+}

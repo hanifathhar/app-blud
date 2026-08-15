@@ -1,0 +1,374 @@
+"use client";
+
+import React, { useState, useEffect, use } from "react";
+import { ArrowLeft, Printer } from "lucide-react";
+import { useRouter } from "next/navigation";
+
+export default function CetakRKAPage({ params }: { params: Promise<{ kdUnit: string, nomor_penetapan: string }> }) {
+  const router = useRouter();
+  const resolvedParams = use(params);
+  const kdUnit = resolvedParams.kdUnit;
+  const nomor_penetapan = decodeURIComponent(resolvedParams.nomor_penetapan);
+  
+  const [jenis, setJenis] = useState<string>("ringkasan");
+  const [kdSubKegiatan, setKdSubKegiatan] = useState<string>("");
+
+  useEffect(() => {
+    // get query param on client side
+    const urlParams = new URLSearchParams(window.location.search);
+    const j = urlParams.get("jenis");
+    const ksk = urlParams.get("kdSubKegiatan");
+    if (j) setJenis(j);
+    if (ksk) setKdSubKegiatan(ksk);
+  }, []);
+
+  const [loading, setLoading] = useState(true);
+  const [data, setData] = useState<any>(null);
+  const [userTahun, setUserTahun] = useState<string>("2024");
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        // Get user session for year
+        const userRes = await fetch("/api/me");
+        const userData = await userRes.json();
+        if (userData.user && userData.user.tahun) {
+          setUserTahun(userData.user.tahun);
+        }
+
+        const urlParams = new URLSearchParams(window.location.search);
+        const j = urlParams.get("jenis") || "ringkasan";
+        const ksk = urlParams.get("kdSubKegiatan") || "";
+
+        const res = await fetch(`/api/perencanaan/dokumen-anggaran/cetak?kdUnit=${kdUnit}&nomor_penetapan=${encodeURIComponent(nomor_penetapan)}&jenis=${j}&kdSubKegiatan=${ksk}`);
+        if (res.ok) {
+          const d = await res.json();
+          if (d.success) {
+            setData(d.data);
+          }
+        }
+      } catch (e) {
+        console.error(e);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchData();
+  }, [kdUnit, nomor_penetapan]);
+
+  useEffect(() => {
+    if (!loading && data) {
+      setTimeout(() => {
+        window.print();
+      }, 500);
+    }
+  }, [loading, data]);
+
+  if (loading) {
+    return <div style={{ padding: 40, textAlign: "center", fontFamily: "sans-serif" }}>Menyiapkan dokumen cetak...</div>;
+  }
+
+  if (!data || !data.penetapan) {
+    return <div style={{ padding: 40, textAlign: "center", fontFamily: "sans-serif", color: "red" }}>Data tidak ditemukan</div>;
+  }
+
+  // --- Grouping Logic ---
+  const groups: any = {};
+  let totalBelanja = 0;
+  
+  const filteredRincian = data.penetapan.rincian || [];
+
+  filteredRincian.forEach((r: any) => {
+    if (!r.kd_rek6) return;
+    
+    const kd2 = r.kd_rek6.length >= 3 ? r.kd_rek6.substring(0, 3) : r.kd_rek6;
+    const kd3 = r.kd_rek6.length >= 6 ? r.kd_rek6.substring(0, 6) : r.kd_rek6;
+    const kd6 = r.kd_rek6;
+
+    if (!groups[kd2]) {
+      groups[kd2] = { 
+        kd: kd2, 
+        nama: data.rek2Dict[kd2] || "MENDAPATKAN DATA", 
+        total: 0, 
+        children: {} 
+      };
+    }
+    
+    if (!groups[kd2].children[kd3]) {
+      groups[kd2].children[kd3] = { 
+        kd: kd3, 
+        nama: data.rek3Dict[kd3] || "MENDAPATKAN DATA", 
+        total: 0, 
+        children: {} 
+      };
+    }
+
+    if (!groups[kd2].children[kd3].children[kd6]) {
+      groups[kd2].children[kd3].children[kd6] = {
+        kd: kd6,
+        nama: r.nm_rek6,
+        total: 0,
+        items: []
+      }
+    }
+
+    const val = Number(r.total) || 0;
+    groups[kd2].children[kd3].children[kd6].items.push(r);
+    groups[kd2].children[kd3].children[kd6].total += val;
+    groups[kd2].children[kd3].total += val;
+    groups[kd2].total += val;
+    totalBelanja += val;
+  });
+
+  const { penetapan, metadata } = data;
+
+  // Render Rows
+  const renderRows = () => {
+    const rows: React.JSX.Element[] = [];
+    
+    Object.keys(groups).sort().forEach(kd2 => {
+      const g2 = groups[kd2];
+      rows.push(
+        <tr key={kd2}>
+          <td style={styles.tdBold}>{kd2}</td>
+          <td style={styles.tdBold}>{g2.nama}</td>
+          <td style={styles.tdCenter}></td>
+          <td style={styles.tdCenter}></td>
+          <td style={styles.tdRight}></td>
+          <td style={styles.tdRightBold}>{new Intl.NumberFormat('id-ID', { minimumFractionDigits: 2 }).format(g2.total)}</td>
+        </tr>
+      );
+
+      Object.keys(g2.children).sort().forEach(kd3 => {
+        const g3 = g2.children[kd3];
+        rows.push(
+          <tr key={kd3}>
+            <td style={styles.tdBold}>{kd3}</td>
+            <td style={styles.tdBold}>{g3.nama}</td>
+            <td style={styles.tdCenter}></td>
+            <td style={styles.tdCenter}></td>
+            <td style={styles.tdRight}></td>
+            <td style={styles.tdRightBold}>{new Intl.NumberFormat('id-ID', { minimumFractionDigits: 2 }).format(g3.total)}</td>
+          </tr>
+        );
+
+        Object.keys(g3.children).sort().forEach(kd6 => {
+          const g6 = g3.children[kd6];
+          rows.push(
+            <tr key={kd6}>
+              <td style={styles.tdBold}>{kd6}</td>
+              <td style={styles.tdBold}>{g6.nama}</td>
+              <td style={styles.tdCenter}></td>
+              <td style={styles.tdCenter}></td>
+              <td style={styles.tdRight}></td>
+              <td style={styles.tdRightBold}>{new Intl.NumberFormat('id-ID', { minimumFractionDigits: 2 }).format(g6.total)}</td>
+            </tr>
+          );
+
+          g6.items.forEach((item: any, idx: number) => {
+            rows.push(
+              <tr key={`${kd6}-${idx}`}>
+                <td style={styles.td}></td>
+                <td style={styles.td}>{item.uraian}</td>
+                <td style={styles.tdCenter}>{Number(item.volume) || ""}</td>
+                <td style={styles.tdCenter}>{item.satuan}</td>
+                <td style={styles.tdRight}>{item.nilai ? new Intl.NumberFormat('id-ID', { minimumFractionDigits: 2 }).format(item.nilai) : ""}</td>
+                <td style={styles.tdRight}>{item.total ? new Intl.NumberFormat('id-ID', { minimumFractionDigits: 2 }).format(item.total) : ""}</td>
+              </tr>
+            );
+          });
+        });
+      });
+    });
+
+    return rows;
+  };
+
+  return (
+    <div style={{ backgroundColor: "#ccc", minHeight: "100vh", display: "flex", flexDirection: "column", alignItems: "center", padding: "20px 0" }}>
+      <style dangerouslySetInnerHTML={{__html: `
+        @media print {
+          body * {
+            visibility: hidden;
+          }
+          #print-area, #print-area * {
+            visibility: visible;
+          }
+          #print-area {
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 100%;
+            background: #fff;
+            padding: 0;
+            margin: 0;
+          }
+          @page {
+            size: A4 portrait;
+            margin: 1.5cm;
+          }
+          .no-print {
+            display: none !important;
+          }
+        }
+      `}} />
+
+      {/* Floating Toolbar - Sembunyi saat diprint */}
+      <div className="no-print" style={{ 
+        position: "sticky", 
+        top: 24, 
+        zIndex: 50, 
+        display: "flex", 
+        justifyContent: "center",
+        marginBottom: 32 
+      }}>
+        <div style={{ 
+          display: "flex", 
+          alignItems: "center", 
+          gap: 8, 
+          padding: "6px 8px", 
+          backgroundColor: "rgba(255, 255, 255, 0.9)", 
+          backdropFilter: "blur(8px)",
+          borderRadius: 999, 
+          boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)",
+          border: "1px solid #E2E8F0"
+        }}>
+          <button 
+            onClick={() => router.push(`/dashboard/perencanaan/dokumen-anggaran/${kdUnit}/${encodeURIComponent(nomor_penetapan)}`)}
+            style={{ display: "flex", alignItems: "center", gap: 6, padding: "6px 12px", borderRadius: 999, backgroundColor: "transparent", color: "#64748B", border: "none", cursor: "pointer", fontSize: 12, fontWeight: 600, transition: "all 0.2s" }}
+            onMouseOver={(e) => { e.currentTarget.style.backgroundColor = "#F1F5F9"; e.currentTarget.style.color = "#0F172A" }}
+            onMouseOut={(e) => { e.currentTarget.style.backgroundColor = "transparent"; e.currentTarget.style.color = "#64748B" }}
+          >
+            <ArrowLeft size={14} />
+            Kembali
+          </button>
+          
+          <div style={{ width: 1, height: 16, backgroundColor: "#E2E8F0" }}></div>
+
+          <button 
+            onClick={() => window.print()}
+            style={{ display: "flex", alignItems: "center", gap: 6, padding: "6px 14px", borderRadius: 999, backgroundColor: "#0F172A", color: "#fff", border: "none", cursor: "pointer", fontSize: 12, fontWeight: 600, transition: "all 0.2s" }}
+            onMouseOver={(e) => e.currentTarget.style.backgroundColor = "#334155"}
+            onMouseOut={(e) => e.currentTarget.style.backgroundColor = "#0F172A"}
+          >
+            <Printer size={14} />
+            Cetak Dokumen
+          </button>
+        </div>
+      </div>
+
+      <div id="print-area" style={{ backgroundColor: "#fff", width: "21cm", minHeight: "29.7cm", padding: "1.5cm", boxSizing: "border-box", fontFamily: "'Times New Roman', Times, serif", fontSize: "12px", color: "#000", margin: "0 auto", boxShadow: "0 10px 15px -3px rgba(0,0,0,0.1)", border: "1px solid #E2E8F0" }}>
+        
+        <table style={{ width: "100%", borderCollapse: "collapse", border: "1px solid #000", marginBottom: 0 }}>
+          <tbody>
+            <tr>
+              <td style={{ width: "120px", border: "1px solid #000", textAlign: "center", padding: "10px" }} rowSpan={2}>
+                {/* Logo Placeholder */}
+                <div style={{ width: "80px", height: "80px", border: "1px solid #999", margin: "0 auto", display: "flex", alignItems: "center", justifyContent: "center", color: "#999", fontSize: "10px" }}>
+                  LOGO<br/>KOTA
+                </div>
+              </td>
+              <td style={{ border: "1px solid #000", textAlign: "center", fontWeight: "bold", fontSize: "14px", padding: "4px" }}>
+                RENCANA KERJA DAN ANGGARAN<br/>
+                BADAN LAYANAN UMUM DAERAH
+              </td>
+              <td style={{ width: "120px", border: "1px solid #000", textAlign: "center", fontWeight: "bold", fontSize: "13px" }} rowSpan={2}>
+                RKA BLUD
+              </td>
+            </tr>
+            <tr>
+              <td style={{ border: "1px solid #000", textAlign: "center", fontSize: "13px", padding: "4px" }}>
+                PUSKESMAS {penetapan.nmUnit?.replace("Puskesmas ", "")?.toUpperCase()}<br/>
+                TAHUN ANGGARAN {userTahun}
+              </td>
+            </tr>
+          </tbody>
+        </table>
+
+        {jenis === 'rka' && (
+          <table style={{ width: "100%", borderCollapse: "collapse", border: "1px solid #000", borderTop: "none" }}>
+            <tbody>
+              <tr>
+                <td style={styles.metaLabel}>Program</td>
+                <td style={styles.metaValue}>{metadata.kd_program} - {metadata.nm_program}</td>
+              </tr>
+              <tr>
+                <td style={styles.metaLabel}>Kegiatan</td>
+                <td style={styles.metaValue}>{metadata.kd_kegiatan} - {metadata.nm_kegiatan}</td>
+              </tr>
+              <tr>
+                <td style={styles.metaLabel}>Sub Kegiatan</td>
+                <td style={styles.metaValue}>{penetapan.kdSubKegiatan} - {penetapan.nmSubKegiatan}</td>
+              </tr>
+              <tr>
+                <td style={styles.metaLabel}>SPM</td>
+                <td style={styles.metaValue}>{penetapan.nmSpm}</td>
+              </tr>
+              <tr>
+                <td style={styles.metaLabel}>Sumber Pendanaan</td>
+                <td style={styles.metaValue}>{penetapan.sumdan || "-"}</td>
+              </tr>
+            </tbody>
+          </table>
+        )}
+
+        <table style={{ width: "100%", borderCollapse: "collapse", border: "1px solid #000", borderTop: "none" }}>
+          <thead>
+            <tr>
+              <td colSpan={6} style={{ textAlign: "center", fontWeight: "bold", fontSize: "13px", padding: "8px", borderBottom: "1px solid #000" }}>
+                {jenis === 'ringkasan' 
+                  ? <>RINGKASAN ANGGARAN PENDAPATAN, BELANJA, PEMBIAYAAN<br/>BADAN LAYANAN UMUM DAERAH</>
+                  : <>RENCANA KERJA DAN ANGGARAN<br/>SUB KEGIATAN BADAN LAYANAN UMUM DAERAH</>
+                }
+              </td>
+            </tr>
+            <tr>
+              <th style={{ ...styles.th, width: "20%" }} rowSpan={2}>Kode<br/>Rekening</th>
+              <th style={{ ...styles.th, width: "35%" }} rowSpan={2}>Uraian</th>
+              <th style={{ ...styles.th, width: "30%" }} colSpan={3}>Rincian Perhitungan</th>
+              <th style={{ ...styles.th, width: "15%" }} rowSpan={2}>Jumlah<br/>(Rp)</th>
+            </tr>
+            <tr>
+              <th style={styles.thSub}>Volume</th>
+              <th style={styles.thSub}>Satuan</th>
+              <th style={styles.thSub}>Harga</th>
+            </tr>
+            <tr>
+              <th style={styles.thColNum}>1</th>
+              <th style={styles.thColNum}>2</th>
+              <th style={styles.thColNum}>3</th>
+              <th style={styles.thColNum}>4</th>
+              <th style={styles.thColNum}>5</th>
+              <th style={styles.thColNum}>6 = 3 x 5</th>
+            </tr>
+          </thead>
+          <tbody>
+            {renderRows()}
+            <tr>
+              <td colSpan={2} style={{ ...styles.tdBold, textAlign: "center" }}>JUMLAH</td>
+              <td style={styles.tdCenter}></td>
+              <td style={styles.tdCenter}></td>
+              <td style={styles.tdRight}></td>
+              <td style={styles.tdRightBold}>{new Intl.NumberFormat('id-ID', { minimumFractionDigits: 2 }).format(totalBelanja)}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+const styles: Record<string, React.CSSProperties> = {
+  metaLabel: { border: "1px solid #000", padding: "4px 6px", width: "140px" },
+  metaValue: { border: "1px solid #000", padding: "4px 6px" },
+  
+  th: { border: "1px solid #000", padding: "6px", textAlign: "center", fontWeight: "bold" },
+  thSub: { border: "1px solid #000", padding: "6px", textAlign: "center", fontWeight: "bold", width: "10%" },
+  thColNum: { border: "1px solid #000", padding: "4px", textAlign: "center", fontWeight: "bold", backgroundColor: "#f9f9f9" },
+
+  td: { border: "1px solid #000", padding: "4px 6px", verticalAlign: "top" },
+  tdBold: { border: "1px solid #000", padding: "4px 6px", fontWeight: "bold", verticalAlign: "top" },
+  tdCenter: { border: "1px solid #000", padding: "4px 6px", textAlign: "center", verticalAlign: "top" },
+  tdRight: { border: "1px solid #000", padding: "4px 6px", textAlign: "right", verticalAlign: "top" },
+  tdRightBold: { border: "1px solid #000", padding: "4px 6px", textAlign: "right", fontWeight: "bold", verticalAlign: "top" }
+};

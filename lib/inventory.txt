@@ -1,0 +1,65 @@
+import { Prisma, JenisStock } from "@prisma/client";
+
+interface RiwayatStockInput {
+  tx: Prisma.TransactionClient;
+  kd_barang: string;
+  qty: number;
+  jenis: JenisStock;
+  referensi?: string;
+  keterangan?: string;
+  dibuatOleh?: number | null;
+}
+
+export async function simpanRiwayatStock({
+  tx,
+  kd_barang,
+  qty,
+  jenis,
+  referensi,
+  keterangan,
+  dibuatOleh,
+}: RiwayatStockInput) {
+
+  const barang = await tx.barang.findUnique({
+    where: {
+      kd_barang,
+    },
+  });
+
+  if (!barang) {
+    throw new Error("Barang tidak ditemukan.");
+  }
+
+  const stockAwal = barang.stock;
+
+  const stockAkhir = stockAwal + qty;
+
+  await tx.barang.update({
+    where: {
+      kd_barang,
+    },
+    data: {
+      stock: stockAkhir,
+    },
+  });
+
+  await tx.riwayatStock.create({
+    data: {
+      kd_barang,
+
+      jenis,
+
+      qty,
+
+      stock_awal: stockAwal,
+
+      stock_akhir: stockAkhir,
+
+      referensi,
+
+      keterangan,
+
+      dibuatOleh,
+    },
+  });
+}

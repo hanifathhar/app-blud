@@ -1,0 +1,9 @@
+{
+  "builds": [
+    { "src": "package.json", "use": "@vercel/node" }
+  ],
+  "env": {
+    "PRISMA_GENERATE_SKIP_AUTOINSTALL": "1"
+  },
+  "buildCommand": "npx prisma generate && next build"
+}

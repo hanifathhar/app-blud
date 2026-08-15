@@ -1,0 +1,465 @@
+generator client {
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "debian-openssl-3.0.x"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ==========================================
+// BLUD Models (dari dbsimblud)
+// ==========================================
+
+/// Tabel admin / pengelola sistem
+/// level: 1=superadmin(Dinkes), 2=kpa, 3=perencana, 4=keuangan, 5=bendahara
+model Admin {
+  id        Int       @id @default(autoincrement())
+  nama      String?   @db.VarChar(100)
+  username  String?   @db.VarChar(100)
+  password  String?   @db.VarChar(100)
+  level     Int?
+  status    Int
+  tgl_login DateTime?
+  block     Int
+  unit      String?   @db.Char(10)
+  email     String?   @db.VarChar(100)
+  no_telp   String?   @db.VarChar(50)
+
+  @@map("admin")
+}
+
+/// Master kegiatan
+model MGiat {
+  id           Int     @id @default(autoincrement())
+  kd_kegiatan  String? @db.VarChar(255)
+  kd_program   String? @db.VarChar(255)
+  nm_kegiatan  String? @db.Text
+  jns_kegiatan Float?
+  lpermen      String? @db.VarChar(255)
+
+  @@map("m_giat")
+}
+
+/// Master komponen
+model MKomponen {
+  id            Int     @id @default(autoincrement())
+  kd_peruntukan String? @db.VarChar(10)
+  kd_komponen   String? @db.VarChar(10)
+  nm_komponen   String? @db.VarChar(225)
+
+  @@map("m_komponen")
+}
+
+/// Master peruntukan
+model MPeruntukan {
+  id            Int     @id @default(autoincrement())
+  kd_peruntukan String? @db.VarChar(10)
+  nm_peruntukan String? @db.VarChar(100)
+
+  @@map("m_peruntukan")
+}
+
+/// Master program
+model MProg {
+  id         Int     @id @default(autoincrement())
+  kd_program String? @db.VarChar(25)
+  nm_program String? @db.Text
+  kd_skpd    String? @db.VarChar(25)
+  lpermen    Int
+  kd_urusan  String? @db.VarChar(50)
+
+  @@map("m_prog")
+}
+
+/// Master rincian kegiatan
+model MRincianKegiatan {
+  id          Int     @id @default(autoincrement())
+  kd_komponen String? @db.VarChar(20)
+  kd_rincian  String? @db.VarChar(20)
+  nm_rincian  String? @db.VarChar(225)
+
+  @@map("m_rincian_kegiatan")
+}
+
+/// Master sub kegiatan
+model MSubGiat {
+  id              Int     @id @default(autoincrement())
+  kd_sub_kegiatan String? @db.Char(25)
+  kd_kegiatan     String? @db.Char(25)
+  kd_program      String? @db.Char(25)
+  nm_sub_kegiatan String? @db.VarChar(500)
+
+  @@map("m_sub_giat")
+}
+
+/// Master UKM
+model MUkm {
+  id     Int     @id @default(autoincrement())
+  kd_ukm String? @db.VarChar(20)
+  nm_ukm String? @db.VarChar(100)
+
+  @@map("m_ukm")
+}
+
+/// Master bulan
+model MsBulan {
+  id Int     @id @default(autoincrement())
+  kd Int?
+  nm String? @db.VarChar(20)
+
+  @@map("ms_bulan")
+}
+
+/// Master sumber dana
+model MsDana {
+  id     Int     @id @default(autoincrement())
+  sumdan String? @db.VarChar(100)
+
+  @@map("ms_dana")
+}
+
+/// Master kesesuaian
+model MsKesesuaian {
+  id   Int     @id @default(autoincrement())
+  kode Int?
+  nama String? @db.VarChar(100)
+
+  @@map("ms_kesesuaian")
+}
+
+/// Master rekening level 1
+model MsRek1 {
+  id       Int     @id @default(autoincrement())
+  kd_rek1  String? @db.Char(1)
+  nm_rek1  String? @db.VarChar(50)
+  kelompok String? @db.Char(1)
+  lra      String? @db.Char(1)
+
+  @@map("ms_rek1")
+}
+
+/// Master rekening level 2
+model MsRek2 {
+  id       Int     @id @default(autoincrement())
+  kd_rek2  String? @db.Char(4)
+  kd_rek1  String? @db.Char(1)
+  nm_rek2  String? @db.VarChar(50)
+  kelompok String? @db.Char(4)
+  lra      String? @db.Char(3)
+
+  @@map("ms_rek2")
+}
+
+/// Master rekening level 3
+model MsRek3 {
+  id       Int     @id @default(autoincrement())
+  kd_rek3  String? @db.Char(6)
+  kd_rek2  String? @db.Char(3)
+  nm_rek3  String? @db.VarChar(100)
+  kelompok String? @db.Char(6)
+  lra      String? @db.Char(6)
+
+  @@map("ms_rek3")
+}
+
+/// Master rekening level 4
+model MsRek4 {
+  id       Int     @id @default(autoincrement())
+  kd_rek4  String? @db.Char(9)
+  kd_rek3  String? @db.Char(6)
+  nm_rek4  String? @db.VarChar(250)
+  kelompok String? @db.Char(10)
+  rek_lap  String? @db.Char(9)
+
+  @@map("ms_rek4")
+}
+
+/// Master rekening level 5
+model MsRek5 {
+  id       Int     @id @default(autoincrement())
+  kd_rek5  String? @db.VarChar(12)
+  kd_rek4  String? @db.VarChar(9)
+  nm_rek5  String? @db.VarChar(225)
+  kelompok String? @db.VarChar(7)
+  rek_lap  String? @db.VarChar(12)
+
+  @@map("ms_rek5")
+}
+
+/// Master rekening level 6
+model MsRek6 {
+  id             Int     @id @default(autoincrement())
+  kd_rek6        String? @db.VarChar(17)
+  kd_rek5        String? @db.VarChar(12)
+  nm_rek6        String? @db.VarChar(350)
+  map_lo         String? @db.VarChar(17)
+  piutang_utang  String? @db.VarChar(17)
+  persed_kdp     String? @db.VarChar(17)
+  sal_n          String? @db.Char(1)
+  rek_persediaan String? @db.VarChar(17)
+  rek_asettetap  String? @db.VarChar(17)
+  kd_potbank     String? @db.VarChar(50)
+  status         Int?    @default(0)
+
+  @@map("ms_rek6")
+}
+
+/// Master jenis SPM
+model MsSpm {
+  id     Int     @id @default(autoincrement())
+  kd_spm Int?
+  nm_spm String? @db.VarChar(255)
+
+  @@map("ms_spm")
+}
+
+/// Master UPT / unit pelaksana teknis
+model MsUpt {
+  id        Int     @id @default(autoincrement())
+  kd_upt    String? @db.VarChar(50)
+  nm_upt    String? @db.VarChar(100)
+  alamat    String? @db.VarChar(100)
+  kecamatan String? @db.VarChar(100)
+  kabupaten String? @db.VarChar(100)
+  email     String? @db.VarChar(100)
+  no_tlp    String? @db.VarChar(25)
+  logo      String? @db.VarChar(100)
+  type      String? @db.VarChar(100)
+  ukuran    String? @db.VarChar(100)
+  status    Int
+
+  @@map("ms_upt")
+}
+
+/// Master urusan
+model MsUrusan {
+  kd_urusan  String  @id @db.VarChar(10)
+  nm_urusan  String  @db.VarChar(100)
+  kd_fungsi  String? @db.Char(4)
+  nm_fungsi  String? @db.VarChar(225)
+  kd_urusan1 String? @db.VarChar(10)
+  nm_urusan1 String? @db.VarChar(225)
+  kd_urusan2 String? @db.VarChar(10)
+  nm_urusan2 String? @db.VarChar(225)
+
+  @@map("ms_urusan")
+}
+
+// ==========================================
+// BLUD Keuangan - Modul Baru
+// ==========================================
+
+/// Tahun Anggaran (multi-tahun)
+model TahunAnggaran {
+  id         Int      @id @default(autoincrement())
+  tahun      Int      @unique
+  status     String   @default("aktif") // aktif, tutup
+  keterangan String?  @db.VarChar(255)
+  created_at DateTime @default(now())
+
+  rka        RKA[]
+  dpa        DPA[]
+
+  @@map("tahun_anggaran")
+}
+
+/// Rencana Kerja Anggaran
+model RKA {
+  id              Int       @id @default(autoincrement())
+  kd_upt          String    @db.VarChar(50)
+  tahun_id        Int
+  no_rka          String?   @db.VarChar(50)
+  kd_program      String?   @db.VarChar(25)
+  kd_kegiatan     String?   @db.VarChar(255)
+  kd_sub_kegiatan String?   @db.Char(25)
+  nm_kegiatan     String?   @db.Text
+  pagu            Float?
+  status          String    @default("draft") // draft, diajukan, disetujui, ditolak
+  keterangan      String?   @db.Text
+  dibuat_oleh     Int?
+  disetujui_oleh  Int?
+  tgl_dibuat      DateTime  @default(now())
+  tgl_disetujui   DateTime?
+  updated_at      DateTime  @updatedAt
+
+  tahun    TahunAnggaran @relation(fields: [tahun_id], references: [id])
+  rincian  RincianRKA[]
+
+  @@map("rka")
+}
+
+/// Rincian Rencana Kerja Anggaran
+model RincianRKA {
+  id           Int     @id @default(autoincrement())
+  rka_id       Int
+  kd_rek6      String? @db.VarChar(17)
+  uraian       String? @db.Text
+  volume       Float?
+  satuan       String? @db.VarChar(50)
+  harga_satuan Float?
+  jumlah       Float?
+  kd_dana      String? @db.VarChar(50)
+
+  rka RKA @relation(fields: [rka_id], references: [id], onDelete: Cascade)
+
+  @@map("rincian_rka")
+}
+
+/// Dokumen Pelaksanaan Anggaran
+model DPA {
+  id              Int       @id @default(autoincrement())
+  kd_upt          String    @db.VarChar(50)
+  tahun_id        Int
+  no_dpa          String?   @db.VarChar(50)
+  kd_program      String?   @db.VarChar(25)
+  kd_kegiatan     String?   @db.VarChar(255)
+  kd_sub_kegiatan String?   @db.Char(25)
+  nm_kegiatan     String?   @db.Text
+  pagu            Float?
+  status          String    @default("draft") // draft, diajukan, disetujui, ditolak
+  keterangan      String?   @db.Text
+  jenis           String    @default("murni") // murni, perubahan
+  dibuat_oleh     Int?
+  disetujui_oleh  Int?
+  tgl_dibuat      DateTime  @default(now())
+  tgl_disetujui   DateTime?
+  updated_at      DateTime  @updatedAt
+
+  tahun    TahunAnggaran @relation(fields: [tahun_id], references: [id])
+  rincian  RincianDPA[]
+  spp      SPP[]
+
+  @@map("dpa")
+}
+
+/// Rincian Dokumen Pelaksanaan Anggaran
+model RincianDPA {
+  id           Int     @id @default(autoincrement())
+  dpa_id       Int
+  kd_rek6      String? @db.VarChar(17)
+  uraian       String? @db.Text
+  volume       Float?
+  satuan       String? @db.VarChar(50)
+  harga_satuan Float?
+  pagu         Float?
+  realisasi    Float?  @default(0)
+  kd_dana      String? @db.VarChar(50)
+
+  dpa DPA @relation(fields: [dpa_id], references: [id], onDelete: Cascade)
+
+  @@map("rincian_dpa")
+}
+
+/// Surat Permintaan Pembayaran
+model SPP {
+  id                Int       @id @default(autoincrement())
+  kd_upt            String    @db.VarChar(50)
+  dpa_id            Int?
+  no_spp            String?   @db.VarChar(50)
+  tgl_spp           DateTime?
+  jenis_spp         String?   @db.VarChar(10) // UP, GU, TU, LS
+  uraian            String?   @db.Text
+  jumlah            Float?
+  status            String    @default("draft") // draft, diajukan, diverifikasi, disetujui, ditolak
+  dibuat_oleh       Int?
+  diverifikasi_oleh Int?
+  tgl_dibuat        DateTime  @default(now())
+  keterangan        String?   @db.Text
+  updated_at        DateTime  @updatedAt
+
+  dpa DPA? @relation(fields: [dpa_id], references: [id])
+  spm SPM?
+
+  @@map("spp")
+}
+
+/// Surat Perintah Membayar
+model SPM {
+  id               Int       @id @default(autoincrement())
+  spp_id           Int       @unique
+  kd_upt           String    @db.VarChar(50)
+  no_spm           String?   @db.VarChar(50)
+  tgl_spm          DateTime?
+  jumlah           Float?
+  status           String    @default("draft") // draft, diterbitkan, ditolak
+  diterbitkan_oleh Int?
+  tgl_dibuat       DateTime  @default(now())
+  keterangan       String?   @db.Text
+  updated_at       DateTime  @updatedAt
+
+  spp  SPP  @relation(fields: [spp_id], references: [id])
+  sp2d SP2D?
+
+  @@map("spm")
+}
+
+/// Surat Perintah Pencairan Dana
+model SP2D {
+  id           Int       @id @default(autoincrement())
+  spm_id       Int       @unique
+  kd_upt       String    @db.VarChar(50)
+  no_sp2d      String?   @db.VarChar(50)
+  tgl_sp2d     DateTime?
+  jumlah       Float?
+  bank         String?   @db.VarChar(100)
+  no_rekening  String?   @db.VarChar(50)
+  status       String    @default("proses") // proses, cair, batal
+  dicatat_oleh Int?
+  tgl_dibuat   DateTime  @default(now())
+  keterangan   String?   @db.Text
+  updated_at   DateTime  @updatedAt
+
+  spm SPM   @relation(fields: [spm_id], references: [id])
+  bku BKU[]
+
+  @@map("sp2d")
+}
+
+/// Buku Kas Umum
+model BKU {
+  id            Int       @id @default(autoincrement())
+  kd_upt        String    @db.VarChar(50)
+  sp2d_id       Int?
+  no_bukti      String?   @db.VarChar(50)
+  tgl_transaksi DateTime?
+  uraian        String?   @db.Text
+  debet         Float?    @default(0)
+  kredit        Float?    @default(0)
+  saldo         Float?    @default(0)
+  kd_rek6       String?   @db.VarChar(17)
+  jenis         String?   @db.VarChar(20) // kas, bank
+  bulan         Int?
+  tahun         Int?
+  dibuat_oleh   Int?
+  tgl_dibuat    DateTime  @default(now())
+  updated_at    DateTime  @updatedAt
+
+  sp2d SP2D? @relation(fields: [sp2d_id], references: [id])
+
+  @@map("bku")
+}
+
+/// Realisasi Anggaran (rekap per rekening per bulan)
+model RealisasiAnggaran {
+  id              Int      @id @default(autoincrement())
+  kd_upt          String   @db.VarChar(50)
+  tahun           Int
+  bulan           Int
+  kd_program      String?  @db.VarChar(25)
+  kd_kegiatan     String?  @db.VarChar(255)
+  kd_sub_kegiatan String?  @db.Char(25)
+  kd_rek6         String?  @db.VarChar(17)
+  pagu            Float?   @default(0)
+  realisasi       Float?   @default(0)
+  updated_at      DateTime @updatedAt
+
+  @@unique([kd_upt, tahun, bulan, kd_rek6])
+  @@map("realisasi_anggaran")
+}
+
+
+model Admin {
+  id        Int       @id @default(autoincrement())
+  nama      String?   @db.VarChar(100)
