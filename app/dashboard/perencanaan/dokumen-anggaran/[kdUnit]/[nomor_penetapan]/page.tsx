@@ -103,7 +103,14 @@ export default function DokumenAnggaranDetailPage({ params }: { params: Promise<
         </div>
       </div>
 
-      <div style={{ position: "absolute", top: 0, right: 0 }}>
+      <div style={{ position: "absolute", top: 0, right: 0, display: "flex", gap: 8 }}>
+        <button
+          onClick={() => router.push(`/dashboard/perencanaan/dokumen-anggaran/${kdUnit}/${encodeURIComponent(nomor_penetapan)}/cetak?jenis=rka_spm`)}
+          style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 16px", borderRadius: 8, backgroundColor: "#3B82F6", color: "#fff", fontWeight: 600, border: "none", cursor: "pointer", fontSize: 14 }}
+        >
+          <Printer size={16} />
+          Rekapitulasi Per SPM
+        </button>
         <button
           onClick={() => router.push(`/dashboard/perencanaan/dokumen-anggaran/${kdUnit}/${encodeURIComponent(nomor_penetapan)}/cetak?jenis=ringkasan`)}
           style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 16px", borderRadius: 8, backgroundColor: "#10B981", color: "#fff", fontWeight: 600, border: "none", cursor: "pointer", fontSize: 14 }}
@@ -210,56 +217,56 @@ export default function DokumenAnggaranDetailPage({ params }: { params: Promise<
                       {/* Baris Rincian Belanja (Baris Anak) */}
                       {!isCollapsed && (
                         rbaHeader.rincian && rbaHeader.rincian.length > 0 ? (
-                        (() => {
-                          const groupedRek6 = rbaHeader.rincian.reduce((acc: any, curr: any) => {
-                            if (!acc[curr.kd_rek6]) {
-                              acc[curr.kd_rek6] = { nama: curr.nm_rek6, items: [], total: 0 };
-                            }
-                            acc[curr.kd_rek6].items.push(curr);
-                            acc[curr.kd_rek6].total += Number(curr.total || curr.nilai || 0);
-                            return acc;
-                          }, {});
+                          (() => {
+                            const groupedRek6 = rbaHeader.rincian.reduce((acc: any, curr: any) => {
+                              if (!acc[curr.kd_rek6]) {
+                                acc[curr.kd_rek6] = { nama: curr.nm_rek6, items: [], total: 0 };
+                              }
+                              acc[curr.kd_rek6].items.push(curr);
+                              acc[curr.kd_rek6].total += Number(curr.total || curr.nilai || 0);
+                              return acc;
+                            }, {});
 
-                          return Object.keys(groupedRek6).sort().map((kd6: string) => {
-                            const g6 = groupedRek6[kd6];
-                            return (
-                              <React.Fragment key={`${rbaIdx}-g6-${kd6}`}>
-                                {/* Header Rekening 6 */}
-                                <tr style={{ borderBottom: "1px solid #E2E8F0", backgroundColor: "#F8FAFC" }}>
-                                  <td style={{ padding: "10px 16px", fontSize: 11, color: "#334155", fontWeight: 600, textAlign: "center", verticalAlign: "top" }}>
-                                    {kd6}
-                                  </td>
-                                  <td colSpan={2} style={{ padding: "10px 16px", verticalAlign: "top" }}>
-                                    <div style={{ fontSize: 12, fontWeight: 600, color: "#334155" }}>{g6.nama}</div>
-                                  </td>
-                                  <td style={{ padding: "10px 16px", fontSize: 12, color: "#334155", fontWeight: 700, textAlign: "right", verticalAlign: "top" }}>
-                                    {new Intl.NumberFormat('id-ID').format(g6.total)}
-                                  </td>
-                                </tr>
-                                {/* Detail Item Rekening 6 */}
-                                {g6.items.map((rin: any, rinIdx: number) => (
-                                  <tr key={`${rbaIdx}-${kd6}-${rinIdx}`} style={{ borderBottom: "1px solid #E2E8F0", backgroundColor: "#FFFFFF" }} className="hover:bg-slate-50/50">
-                                    <td style={{ padding: "12px 16px" }}></td>
-                                    <td style={{ padding: "12px 16px", width: 40, verticalAlign: "top" }}>
-                                      <div style={{ width: 12, height: 12, borderLeft: "2px solid #CBD5E1", borderBottom: "2px solid #CBD5E1", marginLeft: 12, marginTop: 4 }}></div>
+                            return Object.keys(groupedRek6).sort().map((kd6: string) => {
+                              const g6 = groupedRek6[kd6];
+                              return (
+                                <React.Fragment key={`${rbaIdx}-g6-${kd6}`}>
+                                  {/* Header Rekening 6 */}
+                                  <tr style={{ borderBottom: "1px solid #E2E8F0", backgroundColor: "#F8FAFC" }}>
+                                    <td style={{ padding: "10px 16px", fontSize: 11, color: "#334155", fontWeight: 600, textAlign: "center", verticalAlign: "top" }}>
+                                      {kd6}
                                     </td>
-                                    <td style={{ padding: "12px 16px", fontSize: 12, verticalAlign: "top", paddingLeft: 0 }}>
-                                      <div style={{ color: "#475569" }}>{rin.uraian || "-"}</div>
-                                      <div style={{ fontSize: 11, color: "#64748B", marginTop: 4, display: "flex", alignItems: "center", gap: 12 }}>
-                                        <span>Volume: <b>{Number(rin.volume)} {rin.satuan}</b></span>
-                                        <span style={{ color: "#CBD5E1" }}>|</span>
-                                        <span>Harga Satuan: <b>Rp {new Intl.NumberFormat('id-ID').format(rin.nilai || 0)}</b></span>
-                                      </div>
+                                    <td colSpan={2} style={{ padding: "10px 16px", verticalAlign: "top" }}>
+                                      <div style={{ fontSize: 12, fontWeight: 600, color: "#334155" }}>{g6.nama}</div>
                                     </td>
-                                    <td style={{ padding: "12px 16px", fontSize: 12, color: "#0F172A", fontWeight: 600, textAlign: "right", verticalAlign: "top" }}>
-                                      {new Intl.NumberFormat('id-ID').format(rin.total || rin.nilai || 0)}
+                                    <td style={{ padding: "10px 16px", fontSize: 12, color: "#334155", fontWeight: 700, textAlign: "right", verticalAlign: "top" }}>
+                                      {new Intl.NumberFormat('id-ID').format(g6.total)}
                                     </td>
                                   </tr>
-                                ))}
-                              </React.Fragment>
-                            );
-                          });
-                        })()
+                                  {/* Detail Item Rekening 6 */}
+                                  {g6.items.map((rin: any, rinIdx: number) => (
+                                    <tr key={`${rbaIdx}-${kd6}-${rinIdx}`} style={{ borderBottom: "1px solid #E2E8F0", backgroundColor: "#FFFFFF" }} className="hover:bg-slate-50/50">
+                                      <td style={{ padding: "12px 16px" }}></td>
+                                      <td style={{ padding: "12px 16px", width: 40, verticalAlign: "top" }}>
+                                        <div style={{ width: 12, height: 12, borderLeft: "2px solid #CBD5E1", borderBottom: "2px solid #CBD5E1", marginLeft: 12, marginTop: 4 }}></div>
+                                      </td>
+                                      <td style={{ padding: "12px 16px", fontSize: 12, verticalAlign: "top", paddingLeft: 0 }}>
+                                        <div style={{ color: "#475569" }}>{rin.uraian || "-"}</div>
+                                        <div style={{ fontSize: 11, color: "#64748B", marginTop: 4, display: "flex", alignItems: "center", gap: 12 }}>
+                                          <span>Volume: <b>{Number(rin.volume)} {rin.satuan}</b></span>
+                                          <span style={{ color: "#CBD5E1" }}>|</span>
+                                          <span>Harga Satuan: <b>Rp {new Intl.NumberFormat('id-ID').format(rin.nilai || 0)}</b></span>
+                                        </div>
+                                      </td>
+                                      <td style={{ padding: "12px 16px", fontSize: 12, color: "#0F172A", fontWeight: 600, textAlign: "right", verticalAlign: "top" }}>
+                                        {new Intl.NumberFormat('id-ID').format(rin.total || rin.nilai || 0)}
+                                      </td>
+                                    </tr>
+                                  ))}
+                                </React.Fragment>
+                              );
+                            });
+                          })()
                         ) : (
                           <tr style={{ borderBottom: "1px solid #E2E8F0", backgroundColor: "#FFFFFF" }}>
                             <td></td>

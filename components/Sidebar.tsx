@@ -76,6 +76,7 @@ const menus: MenuItem[] = [
       { label: "RUK Belanja", href: "/dashboard/perencanaan/puk", roles: ["superadmin", "kpa", "perencana"] },
       { label: "RBA Pendapatan", href: "/dashboard/perencanaan/rba-pendapatan", roles: ["superadmin", "kpa", "perencana"] },
       { label: "RBA Belanja", href: "/dashboard/perencanaan/rba", roles: ["superadmin", "kpa", "perencana"] },
+      { label: "Input SILPA Tahun Lalu", href: "/dashboard/perencanaan/silpa", roles: ["superadmin", "kpa", "perencana"] },
       { label: "Penetapan RBA", href: "/dashboard/perencanaan/penetapan-rba", roles: ["superadmin", "kpa"] },
       { label: "Dokumen Anggaran", href: "/dashboard/perencanaan/dokumen-anggaran", roles: ["superadmin", "kpa", "perencana"] }
     ],
@@ -86,10 +87,7 @@ const menus: MenuItem[] = [
     icon: <FileText size={17} />,
     roles: ["superadmin", "kpa", "keuangan", "bendahara"],
     children: [
-      { label: "SPP", href: "/dashboard/penatausahaan/spp", roles: ["superadmin", "kpa", "keuangan", "bendahara"] },
-      { label: "SPM", href: "/dashboard/penatausahaan/spm", roles: ["superadmin", "kpa"] },
-      { label: "SP2D", href: "/dashboard/penatausahaan/sp2d", roles: ["superadmin", "kpa", "bendahara", "keuangan"] },
-      { label: "Buku Kas Umum (BKU)", href: "/dashboard/penatausahaan/bku", roles: ["superadmin", "bendahara", "keuangan"] },
+      { label: "Penerimaan", href: "/dashboard/penatausahaan/penerimaan", roles: ["superadmin", "kpa", "keuangan", "bendahara"] },
     ],
   },
   {

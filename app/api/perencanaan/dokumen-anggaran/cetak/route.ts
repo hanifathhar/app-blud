@@ -44,13 +44,21 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ success: false, message: "Sub Kegiatan tidak ditemukan pada dokumen ini" }, { status: 404 });
     }
 
-    // Gabungkan semua rincian dari penetapan yang difilter
     let allRincian: any[] = [];
     filteredPenetapanList.forEach(p => {
       if (p.rincian) {
-        allRincian = allRincian.concat(p.rincian);
+        const rincianWithMeta = p.rincian.map(r => ({
+          ...r,
+          kdSpm: p.kdSpm || "-",
+          nmSpm: p.nmSpm || "-",
+          sumdan: p.sumdan || "-",
+          kdSubKegiatan: p.kdSubKegiatan || "-"
+        }));
+        allRincian = allRincian.concat(rincianWithMeta);
       }
     });
+
+
 
     // Ambil metadata dari record pertama (jika RKA per sub-kegiatan, ini record yg tepat)
     let penetapan = { ...filteredPenetapanList[0] };
@@ -161,6 +169,13 @@ export async function GET(req: NextRequest) {
       if (r.kd_rek3 && r.nm_rek3) rek3Dict[r.kd_rek3.trim()] = r.nm_rek3;
     });
 
+    let spmMaster = [];
+    if (jenis === "rka_spm") {
+      spmMaster = await prisma.msSpm.findMany({
+        orderBy: { kd_spm: "asc" }
+      });
+    }
+
     // Serialize BigInt for JSON
     const serializedPenetapan = {
       ...penetapan,
@@ -181,7 +196,8 @@ export async function GET(req: NextRequest) {
         penetapan: serializedPenetapan,
         metadata,
         rek2Dict,
-        rek3Dict
+        rek3Dict,
+        spmMaster
       }
     });
   } catch (error: any) {

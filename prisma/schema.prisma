@@ -847,3 +847,73 @@ model TblRbaRincianPenetapan {
   @@index([nomor_penetapan])
   @@map("tbl_rba_rincian_penetapan")
 }
+
+// SILPA Tahun Lalu
+model TblSilpa {
+  id                Int       @id @default(autoincrement())
+  kd_upt            String    @db.VarChar(50)
+  nm_upt            String?   @db.VarChar(100)
+  tahun             String    @db.VarChar(4)
+  kd_rek6           String    @db.VarChar(50)
+  nm_rek6           String    @db.VarChar(100)
+  nilai             Decimal   @default(0.00) @db.Decimal(18,2)
+  status            String    @default("draft") // draft, ditetapkan
+  nomor_penetapan   String?   @db.VarChar(100)
+  tanggal_penetapan DateTime?
+  dibuat_oleh       String?   @db.VarChar(100)
+  tgl_dibuat        DateTime  @default(now())
+  tgl_update        DateTime? @updatedAt
+
+  @@unique([kd_upt, tahun, kd_rek6])
+  @@map("tbl_silpa")
+}
+
+
+model TblPenerimaan {
+  idTerima        Int       @id @default(autoincrement()) @map("id_terima")
+
+  noBukti         String?   @map("no_bukti") @db.VarChar(100)
+  tglBukti        DateTime? @map("tgl_bukti") @db.Date
+
+  kdUnit          String? @map("kd_upt") @db.VarChar(100)
+  nmUnit          String? @map("nm_upt") @db.VarChar(100)
+
+  kdSubKegiatan   String?   @map("kd_sub_kegiatan") @db.VarChar(25)
+  nmSubKegiatan   String?   @map("nm_sub_kegiatan") @db.VarChar(225)
+
+  kdRek6          String?   @map("kd_rek6") @db.VarChar(50)
+  nmRek6          String?   @map("nm_rek6") @db.VarChar(100)
+
+  nilai           Decimal?  @db.Decimal(18, 2)
+
+  keterangan      String?   @db.VarChar(225)
+  nmPenyetor      String?   @map("nm_penyetor") @db.VarChar(100)
+
+  username        String?   @db.VarChar(100)
+
+  tglUpdate       DateTime? @map("tgl_update")
+  aksi            String?   @db.VarChar(100)
+
+  jenis           String?   @db.VarChar(1)
+
+  tahun           String?   @db.Char(4)
+
+  verif           Int       @default(0)
+  tglVerif        DateTime? @map("tgl_verif")
+  userVerif       String?   @map("user_verif") @db.VarChar(100)
+
+  pengesahan      Int       @default(0)
+
+  sumdan          String?  @map("sumdan") @db.VarChar(225)
+
+  @@index([kdUnit])
+  @@index([tahun])
+  @@index([tglBukti])
+  @@index([kdRek6])
+  @@index([sumdan])
+  @@index([verif])
+  @@index([pengesahan])
+
+  @@map("tbl_penerimaan")
+}
+

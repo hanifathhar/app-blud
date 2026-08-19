@@ -63,7 +63,8 @@ export async function GET(req: Request) {
 
         allRba.forEach(r => {
           const val = Number(r.nilai) || 0;
-          if (r.nmSubKegiatan?.toUpperCase() === 'PENDAPATAN') {
+          const subKeg = r.nmSubKegiatan?.toUpperCase() || "";
+          if (subKeg === 'PENDAPATAN' || subKeg === 'PEMBIAYAAN') {
              totalPendapatan += val;
           } else {
              totalBelanja += val;
@@ -142,7 +143,68 @@ export async function POST(req: Request) {
       });
     });
 
-    await prisma.$transaction(tx);
+    // Otomatis tetapkan SILPA di tahun dan UPT yang sama
+    const tahunRba = rbas[0]?.tahun || "";
+    
+    // Fetch draft/active SILPA
+    const silpas = await prisma.tblSilpa.findMany({
+      where: { kd_upt: kdUnit, tahun: tahunRba }
+    });
+
+    const silpaPenetapanTx = silpas.filter((s: any) => Number(s.nilai) > 0).map((s: any) => {
+      return prisma.tblRbaPenetapan.create({
+        data: {
+          no_rba: `RBA-${kdUnit}-SILPA-${s.kd_rek6}`,
+          nomor_penetapan,
+          tanggal_penetapan: tanggal_penetapan ? new Date(tanggal_penetapan) : null,
+          keterangan,
+          kdUnit: s.kd_upt,
+          nmUnit: s.nm_upt,
+          tahun: s.tahun,
+          kdSubKegiatan: '0.00.00.0.01.01',
+          nmSubKegiatan: 'PEMBIAYAAN',
+          noPuk: `${s.kd_upt}0.00.00.0.01.01`,
+          kd_rek6: s.kd_rek6,
+          nm_rek6: s.nm_rek6,
+          nilai: s.nilai,
+          rincian: {
+            create: [
+              {
+                tanggal_penetapan: tanggal_penetapan ? new Date(tanggal_penetapan) : null,
+                keterangan,
+                kdUnit: s.kd_upt,
+                nmUnit: s.nm_upt,
+                tahun: s.tahun,
+                kdSubKegiatan: '0.00.00.0.01.01',
+                nmSubKegiatan: 'PEMBIAYAAN',
+                noPuk: `${s.kd_upt}0.00.00.0.01.01`,
+                kd_rek6: s.kd_rek6,
+                nm_rek6: s.nm_rek6,
+                uraian: s.nm_rek6,
+                volume: 1,
+                satuan: 'Tahun',
+                nilai: s.nilai,
+                total: s.nilai,
+              }
+            ]
+          }
+        }
+      });
+    });
+
+    await prisma.$transaction([...tx, ...silpaPenetapanTx]);
+
+    // Update status TblSilpa
+    if (tahunRba) {
+      await prisma.tblSilpa.updateMany({
+        where: { kd_upt: kdUnit, tahun: tahunRba, status: "draft" },
+        data: {
+          status: "ditetapkan",
+          nomor_penetapan,
+          tanggal_penetapan: tanggal_penetapan ? new Date(tanggal_penetapan) : null
+        }
+      });
+    }
 
     return NextResponse.json({ success: true, message: `Berhasil memposting ${rbas.length} RBA` });
   } catch (error: any) {
@@ -180,6 +242,16 @@ export async function DELETE(req: NextRequest) {
     // Menghapus data penetapan dan rinciannya secara cascade
     await prisma.tblRbaPenetapan.deleteMany({
       where: { kdUnit, nomor_penetapan }
+    });
+
+    // Otomatis kembalikan status SILPA ke draft
+    await prisma.tblSilpa.updateMany({
+      where: { kd_upt: kdUnit, nomor_penetapan },
+      data: {
+        status: "draft",
+        nomor_penetapan: null,
+        tanggal_penetapan: null
+      }
     });
 
     return NextResponse.json({ success: true, message: "Penetapan berhasil dibatalkan" });
