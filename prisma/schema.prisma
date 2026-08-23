@@ -371,6 +371,8 @@ model SPP {
 
   dpa DPA? @relation(fields: [dpa_id], references: [id])
   spm SPM?
+  tagihan_id        Int?
+  tagihan           Tagihan? @relation(fields: [tagihan_id], references: [id])
 
   @@map("spp")
 }
@@ -437,6 +439,8 @@ model BKU {
   updated_at    DateTime  @updatedAt
 
   sp2d SP2D? @relation(fields: [sp2d_id], references: [id])
+  tagihan_id    Int?
+  tagihan       Tagihan? @relation(fields: [tagihan_id], references: [id])
 
   @@map("bku")
 }
@@ -915,5 +919,165 @@ model TblPenerimaan {
   @@index([pengesahan])
 
   @@map("tbl_penerimaan")
+}
+
+// ==========================================
+// Penatausahaan Belanja (Procure to Pay)
+// ==========================================
+
+model PermintaanBelanja {
+  id              Int       @id @default(autoincrement())
+  kd_upt          String    @db.VarChar(50)
+  tahun           String    @db.VarChar(4)
+  no_permintaan   String    @unique @db.VarChar(100)
+  tgl_permintaan  DateTime
+  
+  kd_ukm          String?   @db.VarChar(20)
+  nm_ukm          String?   @db.VarChar(100)
+  kd_peruntukan   String?   @db.VarChar(20)
+  nm_peruntukan   String?   @db.VarChar(100)
+  kd_komponen     String?   @db.VarChar(20)
+  nm_komponen     String?   @db.VarChar(225)
+  kd_rincian      String?   @db.VarChar(20)
+  nm_rincian      String?   @db.VarChar(225)
+  kd_sub_kegiatan String?   @db.VarChar(50)
+  nm_sub_kegiatan String?   @db.VarChar(225)
+  kd_spm          String?   @db.Char(5)
+  nm_spm          String?   @db.VarChar(225)
+
+  keterangan      String?   @db.Text
+  status          String    @default("draft") // draft, diajukan, disetujui, ditolak
+  dibuat_oleh     String?   @db.VarChar(100)
+  disetujui_oleh  String?   @db.VarChar(100)
+  tgl_dibuat      DateTime  @default(now())
+  tgl_disetujui   DateTime?
+  updated_at      DateTime  @updatedAt
+
+  rincian         RincianPermintaanBelanja[]
+  pengadaan       Pengadaan?
+
+  @@map("tbl_permintaan_belanja")
+}
+
+model RincianPermintaanBelanja {
+  id                    Int     @id @default(autoincrement())
+  permintaan_belanja_id Int
+  
+  kd_ukm          String?   @db.VarChar(20)
+  kd_peruntukan   String?   @db.VarChar(20)
+  kd_komponen     String?   @db.VarChar(20)
+  kd_rincian      String?   @db.VarChar(20)
+  kd_sub_kegiatan String?   @db.VarChar(50)
+  kd_spm          String?   @db.Char(5)
+
+  no_permintaan   String?   @db.VarChar(100)
+  tgl_permintaan  DateTime?
+
+
+  kd_rek6               String? @db.VarChar(50)
+  nm_rek6               String? @db.VarChar(100)
+  uraian                String? @db.Text
+  volume                Float?
+  satuan                String? @db.VarChar(50)
+  harga                 Float?
+  total                 Float?
+  sumdan                String? @db.VarChar(225)
+
+  permintaan_belanja PermintaanBelanja @relation(fields: [permintaan_belanja_id], references: [id], onDelete: Cascade)
+
+  @@map("tbl_rincian_permintaan_belanja")
+}
+
+model Pengadaan {
+  id                    Int       @id @default(autoincrement())
+  permintaan_belanja_id Int?      @unique
+  kd_upt                String    @db.VarChar(50)
+  tahun                 String    @db.VarChar(4)
+  no_kontrak            String    @unique @db.VarChar(100)
+  tgl_kontrak           DateTime
+  nm_vendor             String?   @db.VarChar(225)
+  alamat_vendor         String?   @db.Text
+  uraian                String?   @db.Text
+  
+  no_permintaan         String?   @db.VarChar(100)
+  
+  kd_ukm          String?   @db.VarChar(20)
+  kd_peruntukan   String?   @db.VarChar(20)
+  kd_komponen     String?   @db.VarChar(20)
+  kd_rincian      String?   @db.VarChar(20)
+  kd_sub_kegiatan String?   @db.VarChar(50)
+  kd_spm          String?   @db.Char(5)
+
+  nilai_kontrak         Float?
+  status                String    @default("proses") // proses, selesai, batal
+  dibuat_oleh           String?   @db.VarChar(100)
+  tgl_dibuat            DateTime  @default(now())
+  updated_at            DateTime  @updatedAt
+
+  permintaan_belanja    PermintaanBelanja? @relation(fields: [permintaan_belanja_id], references: [id])
+  penerimaan            PenerimaanBarang[]
+  rincian               RincianPengadaan[]
+
+  @@map("tbl_pengadaan")
+}
+
+model RincianPengadaan {
+  id                    Int     @id @default(autoincrement())
+  pengadaan_id          Int
+  
+  kd_rek6               String? @db.VarChar(50)
+  nm_rek6               String? @db.VarChar(100)
+  uraian                String? @db.Text
+  
+  kd_ukm          String?   @db.VarChar(20)
+  kd_peruntukan   String?   @db.VarChar(20)
+  kd_komponen     String?   @db.VarChar(20)
+  kd_rincian      String?   @db.VarChar(20)
+  kd_sub_kegiatan String?   @db.VarChar(50)
+  kd_spm          String?   @db.Char(5)
+  volume                Float?
+  satuan                String? @db.VarChar(50)
+  harga                 Float?
+  total                 Float?
+  sumdan                String? @db.VarChar(225)
+
+  pengadaan             Pengadaan @relation(fields: [pengadaan_id], references: [id], onDelete: Cascade)
+
+  @@map("tbl_rincian_pengadaan")
+}
+
+model PenerimaanBarang {
+  id              Int       @id @default(autoincrement())
+  pengadaan_id    Int
+  no_bast         String    @unique @db.VarChar(100)
+  tgl_bast        DateTime
+  keterangan      String?   @db.Text
+  status          String    @default("diterima") // diterima, retur
+  diterima_oleh   String?   @db.VarChar(100)
+  tgl_dibuat      DateTime  @default(now())
+  updated_at      DateTime  @updatedAt
+
+  pengadaan       Pengadaan @relation(fields: [pengadaan_id], references: [id])
+  tagihan         Tagihan[]
+
+  @@map("tbl_penerimaan_barang")
+}
+
+model Tagihan {
+  id                    Int       @id @default(autoincrement())
+  penerimaan_barang_id  Int
+  no_tagihan            String    @unique @db.VarChar(100)
+  tgl_tagihan           DateTime
+  nilai_tagihan         Float?
+  keterangan            String?   @db.Text
+  status                String    @default("belum_dibayar") // belum_dibayar, proses_bayar, lunas
+  tgl_dibuat            DateTime  @default(now())
+  updated_at            DateTime  @updatedAt
+
+  penerimaan_barang     PenerimaanBarang @relation(fields: [penerimaan_barang_id], references: [id])
+  spp                   SPP[]
+  bku                   BKU[]
+
+  @@map("tbl_tagihan")
 }
 
