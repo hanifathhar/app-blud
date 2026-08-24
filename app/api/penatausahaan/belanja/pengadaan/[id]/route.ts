@@ -34,7 +34,7 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
       if (pengadaan.permintaan_belanja_id) {
         await tx.permintaanBelanja.update({
           where: { id: pengadaan.permintaan_belanja_id },
-          data: { status: "disetujui" }
+          data: { status: "draft" }
         });
       }
 
@@ -146,7 +146,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
         if (existing.permintaan_belanja_id) {
            await tx.permintaanBelanja.update({
              where: { id: existing.permintaan_belanja_id },
-             data: { status: "disetujui" }
+             data: { status: "draft" }
            });
         }
         if (permintaan_belanja_id) {
