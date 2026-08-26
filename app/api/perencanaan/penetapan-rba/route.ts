@@ -10,13 +10,18 @@ const prisma = new PrismaClient();
 
 export async function GET(req: Request) {
   try {
+    const auth = getUserFromRequest(req as NextRequest);
     const { searchParams } = new URL(req.url);
     const kd_upt = searchParams.get("kd_upt") || "";
     const q = searchParams.get("q") || "";
+    const tahun = searchParams.get("tahun") || auth?.tahun;
 
     let where: any = {};
     if (kd_upt) {
       where.kdUnit = kd_upt;
+    }
+    if (tahun) {
+      where.tahun = tahun;
     }
     if (q) {
       where.OR = [

@@ -10,15 +10,17 @@ export async function GET(req: NextRequest) {
     if (!auth) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
     const url = new URL(req.url);
-    const tahun = url.searchParams.get("tahun");
+    const tahun = url.searchParams.get("tahun") || auth.tahun;
     const kd_upt = url.searchParams.get("kd_upt") || auth.unit;
 
     const param_kd_upt = url.searchParams.get("kd_upt");
     const status = url.searchParams.get("status");
+    const jenis_permintaan = url.searchParams.get("jenis_permintaan");
 
     let whereClause: any = {};
     if (tahun) whereClause.tahun = tahun;
     if (status) whereClause.status = status;
+    if (jenis_permintaan) whereClause.jenis_permintaan = jenis_permintaan;
     
     if (auth.level === 1) {
       if (param_kd_upt) whereClause.kd_upt = param_kd_upt;
@@ -29,6 +31,11 @@ export async function GET(req: NextRequest) {
     const unused = url.searchParams.get("unused");
     if (unused === "true") {
       whereClause.pengadaan = null;
+    }
+
+    const unused_tagihan = url.searchParams.get("unused_tagihan");
+    if (unused_tagihan === "true") {
+      whereClause.tagihan = { none: {} };
     }
 
     const permintaanList = await prisma.permintaanBelanja.findMany({
@@ -63,6 +70,7 @@ export async function POST(req: NextRequest) {
       kd_sub_kegiatan, nm_sub_kegiatan,
       kd_spm, nm_spm,
       keterangan,
+      jenis_permintaan,
       tahun,
       kd_upt: bodyKdUpt,
       rincian, // Array of objects
@@ -125,6 +133,12 @@ export async function POST(req: NextRequest) {
       }
     }
 
+    // Tentukan jenis permintaan berdasarkan rincian
+    const isPengadaan = rincian.some((r: any) => 
+      r.kd_rek6?.startsWith("5.2.") || r.kd_rek6?.startsWith("5.1.02.01.")
+    );
+    const calculatedJenisPermintaan = isPengadaan ? "pengadaan" : "non_pengadaan";
+
     // Insert permintaan dan rincian
     const permintaan = await prisma.$transaction(async (tx) => {
       const p = await tx.permintaanBelanja.create({
@@ -139,6 +153,7 @@ export async function POST(req: NextRequest) {
           kd_sub_kegiatan, nm_sub_kegiatan,
           kd_spm, nm_spm,
           keterangan,
+          jenis_permintaan: calculatedJenisPermintaan,
           tahun,
           status: "draft",
           dibuat_oleh: auth.username,

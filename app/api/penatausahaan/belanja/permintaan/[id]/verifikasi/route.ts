@@ -48,9 +48,41 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
       return NextResponse.json({ error: "Aksi tidak dikenali" }, { status: 400 });
     }
 
-    const updated = await prisma.permintaanBelanja.update({
-      where: { id: permintaanId },
-      data: updateData,
+    const updated = await prisma.$transaction(async (tx) => {
+      const updatedPermintaan = await tx.permintaanBelanja.update({
+        where: { id: permintaanId },
+        data: updateData,
+      });
+
+      // Auto-create Tagihan for non_pengadaan
+      if (action === "setuju" && updatedPermintaan.jenis_permintaan === "non_pengadaan") {
+        const rincian = await tx.rincianPermintaanBelanja.aggregate({
+          where: { permintaan_belanja_id: permintaanId },
+          _sum: { total: true }
+        });
+        
+        const nilaiTagihan = rincian._sum.total || 0;
+        
+        // Cek jika tagihan sudah ada (untuk menghindari duplikasi saat retry)
+        const existingTagihan = await tx.tagihan.findFirst({
+          where: { permintaan_belanja_id: permintaanId }
+        });
+
+        if (!existingTagihan) {
+          await tx.tagihan.create({
+            data: {
+              permintaan_belanja_id: updatedPermintaan.id,
+              no_tagihan: `TGH-${updatedPermintaan.no_permintaan}`,
+              tgl_tagihan: new Date(),
+              nilai_tagihan: nilaiTagihan,
+              keterangan: updatedPermintaan.keterangan || `Tagihan otomatis dari permintaan non pengadaan ${updatedPermintaan.no_permintaan}`,
+              status: "belum_dibayar",
+            }
+          });
+        }
+      }
+
+      return updatedPermintaan;
     });
 
     return NextResponse.json({

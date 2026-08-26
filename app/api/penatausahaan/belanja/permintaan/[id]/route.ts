@@ -28,6 +28,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
       kd_sub_kegiatan, nm_sub_kegiatan,
       kd_spm, nm_spm,
       keterangan,
+      jenis_permintaan,
       tahun,
       kd_upt: bodyKdUpt,
       rincian, // Array of objects
@@ -103,6 +104,12 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
       }
     }
 
+    // Tentukan jenis permintaan berdasarkan rincian
+    const isPengadaan = rincian.some((r: any) => 
+      r.kd_rek6?.startsWith("5.2.") || r.kd_rek6?.startsWith("5.1.02.01.")
+    );
+    const calculatedJenisPermintaan = isPengadaan ? "pengadaan" : "non_pengadaan";
+
     // 3. Update the request in a transaction
     const updated = await prisma.$transaction(async (tx) => {
       // a. Update header
@@ -118,6 +125,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
           kd_sub_kegiatan, nm_sub_kegiatan,
           kd_spm, nm_spm,
           keterangan,
+          jenis_permintaan: calculatedJenisPermintaan,
           tahun,
           dibuat_oleh: auth.user
         }

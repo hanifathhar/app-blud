@@ -10,7 +10,7 @@ export async function GET(req: NextRequest) {
     if (!auth) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
     const url = new URL(req.url);
-    const tahun = url.searchParams.get("tahun");
+    const tahun = url.searchParams.get("tahun") || auth.tahun;
     const kd_upt = url.searchParams.get("kd_upt") || auth.unit;
     const status = url.searchParams.get("status");
 
@@ -86,11 +86,17 @@ export async function POST(req: NextRequest) {
       rincian,
       no_permintaan,
       kd_ukm,
+      nm_ukm,
       kd_peruntukan,
+      nm_peruntukan,
       kd_komponen,
+      nm_komponen,
       kd_rincian,
+      nm_rincian,
       kd_sub_kegiatan,
+      nm_sub_kegiatan,
       kd_spm,
+      nm_spm,
     } = body;
 
     let kd_upt = auth.unit || "";
@@ -107,6 +113,12 @@ export async function POST(req: NextRequest) {
       }
     }
 
+    let nm_upt = null;
+    if (kd_upt) {
+      const upt = await prisma.msUpt.findFirst({ where: { kd_upt } });
+      if (upt) nm_upt = upt.nm_upt;
+    }
+
     if (!no_kontrak || !tgl_kontrak || !rincian || rincian.length === 0) {
       return NextResponse.json({ error: "Data tidak lengkap" }, { status: 400 });
     }
@@ -118,6 +130,7 @@ export async function POST(req: NextRequest) {
           no_kontrak,
           tgl_kontrak: new Date(tgl_kontrak),
           kd_upt: kd_upt,
+          nm_upt: nm_upt,
           tahun,
           nm_vendor,
           alamat_vendor,
@@ -125,11 +138,17 @@ export async function POST(req: NextRequest) {
           nilai_kontrak: Number(nilai_kontrak || 0),
           no_permintaan,
           kd_ukm,
+          nm_ukm,
           kd_peruntukan,
+          nm_peruntukan,
           kd_komponen,
-          kd_rincian: kd_rincian,
+          nm_komponen,
+          kd_rincian,
+          nm_rincian,
           kd_sub_kegiatan,
+          nm_sub_kegiatan,
           kd_spm,
+          nm_spm,
           status: "proses",
           dibuat_oleh: auth.username,
           rincian: {
@@ -138,16 +157,23 @@ export async function POST(req: NextRequest) {
               nm_rek6: r.nm_rek6,
               uraian: r.uraian,
               kd_ukm: r.kd_ukm || kd_ukm,
+              nm_ukm: r.nm_ukm || nm_ukm,
               kd_peruntukan: r.kd_peruntukan || kd_peruntukan,
+              nm_peruntukan: r.nm_peruntukan || nm_peruntukan,
               kd_komponen: r.kd_komponen || kd_komponen,
+              nm_komponen: r.nm_komponen || nm_komponen,
               kd_rincian: r.kd_rincian || kd_rincian,
+              nm_rincian: r.nm_rincian || nm_rincian,
               kd_sub_kegiatan: r.kd_sub_kegiatan || kd_sub_kegiatan,
+              nm_sub_kegiatan: r.nm_sub_kegiatan || nm_sub_kegiatan,
               kd_spm: r.kd_spm || kd_spm,
+              nm_spm: r.nm_spm || nm_spm,
               volume: Number(r.volume || 0),
               satuan: r.satuan,
               harga: Number(r.harga || 0),
               total: Number(r.total || (Number(r.volume || 0) * Number(r.harga || 0))),
               sumdan: r.sumdan,
+              nm_sumdan: r.nm_sumdan,
             })),
           },
         },

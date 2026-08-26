@@ -112,7 +112,9 @@ export async function GET(req: Request) {
     });
 
     // Include general Level 3 categories even if no data, to show structure
-    msRek3.forEach(r => ensureNode(r.kd_rek3));
+    msRek3.forEach(r => {
+      if (r.kd_rek3) ensureNode(r.kd_rek3);
+    });
 
     // Convert map to sorted array
     const sortedTree = Array.from(treeMap.values()).sort((a, b) => a.kode.localeCompare(b.kode));

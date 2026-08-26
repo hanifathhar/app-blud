@@ -69,8 +69,7 @@ export default function PengadaanForm({ initialData, isEdit = false }: Pengadaan
       return;
     }
 
-    // Query param untuk fetch
-    let url = "/api/penatausahaan/belanja/permintaan?unused=true";
+    let url = "/api/penatausahaan/belanja/permintaan?unused=true&jenis_permintaan=pengadaan&status=draft";
     if ((user.level === 1 || user.role === "superadmin") && selectedUpt) {
       url += `&kd_upt=${selectedUpt}`;
     }
@@ -249,7 +248,11 @@ export default function PengadaanForm({ initialData, isEdit = false }: Pengadaan
                 }}
                 placeholder="-- Pilih UPT Terlebih Dahulu --"
                 isClearable
-                styles={{ control: (base) => ({ ...base, borderColor: '#E2E8F0', borderRadius: '9px', minHeight: '40px' }) }}
+                menuPortalTarget={typeof document !== "undefined" ? document.body : null}
+                styles={{ 
+                  control: (base) => ({ ...base, borderColor: '#E2E8F0', borderRadius: '9px', minHeight: '40px' }),
+                  menuPortal: (base) => ({ ...base, zIndex: 9999 })
+                }}
               />
             </div>
           )}

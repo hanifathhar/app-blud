@@ -36,6 +36,7 @@ export default function PermintaanForm({ initialData, isEdit = false }: Perminta
     nm_spm: initialData?.nm_spm || "",
 
     keterangan: initialData?.keterangan || "",
+    jenis_permintaan: initialData?.jenis_permintaan || "pengadaan",
     tahun: initialData?.tahun || new Date().getFullYear().toString(),
   });
 
@@ -270,6 +271,19 @@ export default function PermintaanForm({ initialData, isEdit = false }: Perminta
                 onChange={(e) => setForm({ ...form, tahun: e.target.value })}
               />
             </div>
+          </div>
+
+          <div>
+             <label className="form-label">Jenis Permintaan</label>
+             <select 
+               className="form-input" 
+               style={{ backgroundColor: "#F8FAFC", cursor: "pointer" }}
+               value={form.jenis_permintaan} 
+               onChange={(e) => setForm({ ...form, jenis_permintaan: e.target.value })}
+             >
+               <option value="pengadaan">Pengadaan Barang/Jasa (Melalui Proses Kontrak & BAST)</option>
+               <option value="non_pengadaan">Non-Pengadaan (Perjalanan Dinas, Honor, Listrik, dll)</option>
+             </select>
           </div>
         </div>
 

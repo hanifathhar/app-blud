@@ -28,7 +28,7 @@ export default function PermintaanBelanjaPage() {
     let q = `?page=${page}&limit=${limit}`;
     if (uptFilter) q += `&kd_upt=${uptFilter}`;
     if (search) q += `&search=${search}`;
-    
+
     fetch(`/api/penatausahaan/belanja/permintaan${q}`)
       .then((r) => r.json())
       .then((d) => {
@@ -77,7 +77,7 @@ export default function PermintaanBelanjaPage() {
 
   // verifikasi will use a specific endpoint, assuming it exists or will be created
   const handleVerifikasi = async (id: number) => {
-     // TODO: logic verifikasi 
+    // TODO: logic verifikasi 
   }
 
   const canCreate = user && ["superadmin", "bendahara", "operator"].includes(user.role);
@@ -111,7 +111,7 @@ export default function PermintaanBelanjaPage() {
                 placeholder="-- Semua UPT --"
                 isClearable
                 menuPortalTarget={typeof window !== "undefined" ? document.body : null}
-                styles={{ 
+                styles={{
                   control: (base) => ({ ...base, borderColor: '#e2e8f0', borderRadius: '0.375rem', minHeight: '42px' }),
                   menuPortal: base => ({ ...base, zIndex: 9999 })
                 }}
@@ -133,9 +133,9 @@ export default function PermintaanBelanjaPage() {
             <thead>
               <tr>
                 <th style={{ width: 40, textAlign: "center" }}>No</th>
-                <th>Tgl Permintaan</th>
                 <th>UPT</th>
                 <th>No. Permintaan</th>
+                <th>Tgl Permintaan</th>
                 <th>Uraian</th>
                 <th>Sumber Dana</th>
                 <th style={{ textAlign: "right" }}>Total Nilai (Rp)</th>
@@ -152,9 +152,9 @@ export default function PermintaanBelanjaPage() {
                 list.map((item, idx) => (
                   <tr key={item.id}>
                     <td style={{ textAlign: "center" }}>{(page - 1) * limit + idx + 1}</td>
-                    <td>{item.tgl_permintaan ? new Date(item.tgl_permintaan).toLocaleDateString("id-ID") : "-"}</td>
                     <td>{upts.find(u => u.kd_upt === item.kd_upt)?.nm_upt || item.kd_upt || "-"}</td>
                     <td style={{ fontWeight: 600, color: "#2563EB" }}>{item.no_permintaan || "-"}</td>
+                    <td>{item.tgl_permintaan ? new Date(item.tgl_permintaan).toLocaleDateString("id-ID") : "-"}</td>
                     <td>{item.keterangan || "-"}</td>
                     <td>{Array.from(new Set(item.rincian?.map((r: any) => r.sumdan).filter(Boolean))).join(", ") || "-"}</td>
                     <td style={{ textAlign: "right", fontWeight: 700 }}>
@@ -171,7 +171,7 @@ export default function PermintaanBelanjaPage() {
                         </span>
                       ) : (
                         <span className="badge" style={{ backgroundColor: "#e0e7ff", color: "#3730a3" }}>
-                           {item.status}
+                          {item.status}
                         </span>
                       )}
                     </td>
@@ -190,6 +190,24 @@ export default function PermintaanBelanjaPage() {
                             </button>
                           </>
                         )}
+                        {/* Aksi khusus disetujui */}
+                        {item.status === "disetujui" && canCreate && (
+                          <>
+                            {item.jenis_permintaan === "non_pengadaan" ? (
+                              <Link href={`/dashboard/penatausahaan/belanja/tagihan/tambah?permintaan_id=${item.id}`}>
+                                <button className="btn btn-outline btn-sm" title="Buat Tagihan" style={{ fontSize: 11, padding: "4px 8px" }}>
+                                  Buat Tagihan
+                                </button>
+                              </Link>
+                            ) : (
+                              <Link href={`/dashboard/penatausahaan/belanja/pengadaan/tambah?permintaan_id=${item.id}`}>
+                                <button className="btn btn-outline btn-sm" title="Buat Pengadaan" style={{ fontSize: 11, padding: "4px 8px" }}>
+                                  Buat Pengadaan
+                                </button>
+                              </Link>
+                            )}
+                          </>
+                        )}
                       </div>
                     </td>
                   </tr>
@@ -198,7 +216,7 @@ export default function PermintaanBelanjaPage() {
             </tbody>
           </table>
         </div>
-        
+
         {!loading && (
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 24, padding: "16px", borderTop: "1px solid #e2e8f0" }}>
             <span style={{ fontSize: 14, color: "#64748B" }}>

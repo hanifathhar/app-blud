@@ -14,7 +14,11 @@ export async function GET(req: Request) {
   const jenis = searchParams.get("jenis");
 
   const where: Record<string, unknown> = {};
-  if (tahun_id) where.tahun_id = parseInt(tahun_id);
+  if (tahun_id) {
+    where.tahun_id = parseInt(tahun_id);
+  } else if (user.tahun) {
+    where.tahun = { tahun: parseInt(user.tahun) };
+  }
   if (jenis) where.jenis = jenis;
   if (user.role !== "superadmin" && kd_upt) where.kd_upt = kd_upt;
   else if (user.role === "superadmin" && kd_upt) where.kd_upt = kd_upt;

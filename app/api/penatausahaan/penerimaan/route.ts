@@ -9,7 +9,7 @@ export async function GET(req: Request) {
 
     const { searchParams } = new URL(req.url);
     const kd_upt = searchParams.get("kd_upt") || user.kd_upt;
-    const tahun = searchParams.get("tahun");
+    const tahun = searchParams.get("tahun") || user.tahun;
     const search = searchParams.get("search");
     const page = parseInt(searchParams.get("page") || "1");
     const limit = parseInt(searchParams.get("limit") || "10");

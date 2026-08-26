@@ -947,6 +947,7 @@ model PermintaanBelanja {
 
   keterangan      String?   @db.Text
   status          String    @default("draft") // draft, diajukan, disetujui, ditolak
+  jenis_permintaan String   @default("pengadaan") // pengadaan, non_pengadaan
   dibuat_oleh     String?   @db.VarChar(100)
   disetujui_oleh  String?   @db.VarChar(100)
   tgl_dibuat      DateTime  @default(now())
@@ -955,6 +956,7 @@ model PermintaanBelanja {
 
   rincian         RincianPermintaanBelanja[]
   pengadaan       Pengadaan?
+  tagihan         Tagihan[]
 
   @@map("tbl_permintaan_belanja")
 }
@@ -982,6 +984,7 @@ model RincianPermintaanBelanja {
   harga                 Float?
   total                 Float?
   sumdan                String? @db.VarChar(225)
+  nm_sumdan             String? @db.VarChar(225)
 
   permintaan_belanja PermintaanBelanja @relation(fields: [permintaan_belanja_id], references: [id], onDelete: Cascade)
 
@@ -992,6 +995,7 @@ model Pengadaan {
   id                    Int       @id @default(autoincrement())
   permintaan_belanja_id Int?      @unique
   kd_upt                String    @db.VarChar(50)
+  nm_upt                String?   @db.VarChar(255)
   tahun                 String    @db.VarChar(4)
   no_kontrak            String    @unique @db.VarChar(100)
   tgl_kontrak           DateTime
@@ -1002,11 +1006,17 @@ model Pengadaan {
   no_permintaan         String?   @db.VarChar(100)
   
   kd_ukm          String?   @db.VarChar(20)
+  nm_ukm          String?   @db.VarChar(100)
   kd_peruntukan   String?   @db.VarChar(20)
+  nm_peruntukan   String?   @db.VarChar(100)
   kd_komponen     String?   @db.VarChar(20)
+  nm_komponen     String?   @db.VarChar(225)
   kd_rincian      String?   @db.VarChar(20)
+  nm_rincian      String?   @db.VarChar(225)
   kd_sub_kegiatan String?   @db.VarChar(50)
+  nm_sub_kegiatan String?   @db.VarChar(225)
   kd_spm          String?   @db.Char(5)
+  nm_spm          String?   @db.VarChar(225)
 
   nilai_kontrak         Float?
   status                String    @default("proses") // proses, selesai, batal
@@ -1030,16 +1040,23 @@ model RincianPengadaan {
   uraian                String? @db.Text
   
   kd_ukm          String?   @db.VarChar(20)
+  nm_ukm          String?   @db.VarChar(100)
   kd_peruntukan   String?   @db.VarChar(20)
+  nm_peruntukan   String?   @db.VarChar(100)
   kd_komponen     String?   @db.VarChar(20)
+  nm_komponen     String?   @db.VarChar(225)
   kd_rincian      String?   @db.VarChar(20)
+  nm_rincian      String?   @db.VarChar(225)
   kd_sub_kegiatan String?   @db.VarChar(50)
+  nm_sub_kegiatan String?   @db.VarChar(225)
   kd_spm          String?   @db.Char(5)
+  nm_spm          String?   @db.VarChar(225)
   volume                Float?
   satuan                String? @db.VarChar(50)
   harga                 Float?
   total                 Float?
   sumdan                String? @db.VarChar(225)
+  nm_sumdan             String? @db.VarChar(225)
 
   pengadaan             Pengadaan @relation(fields: [pengadaan_id], references: [id], onDelete: Cascade)
 
@@ -1049,6 +1066,8 @@ model RincianPengadaan {
 model PenerimaanBarang {
   id              Int       @id @default(autoincrement())
   pengadaan_id    Int
+  kd_upt          String?   @db.VarChar(50)
+  nm_upt          String?   @db.VarChar(255)
   no_bast         String    @unique @db.VarChar(100)
   tgl_bast        DateTime
   keterangan      String?   @db.Text
@@ -1065,19 +1084,79 @@ model PenerimaanBarang {
 
 model Tagihan {
   id                    Int       @id @default(autoincrement())
-  penerimaan_barang_id  Int
+  penerimaan_barang_id  Int?
+  permintaan_belanja_id Int?
   no_tagihan            String    @unique @db.VarChar(100)
+  no_permintaan         String?   @db.VarChar(100)
+  tahun                 String?   @db.VarChar(4)
+  kd_upt                String?   @db.VarChar(50)
+  nm_upt                String?   @db.VarChar(255)
   tgl_tagihan           DateTime
   nilai_tagihan         Float?
   keterangan            String?   @db.Text
+  nm_vendor             String?   @db.VarChar(255)
+  
+  kd_ukm          String?   @db.VarChar(20)
+  nm_ukm          String?   @db.VarChar(100)
+  kd_peruntukan   String?   @db.VarChar(20)
+  nm_peruntukan   String?   @db.VarChar(100)
+  kd_komponen     String?   @db.VarChar(20)
+  nm_komponen     String?   @db.VarChar(225)
+  kd_rincian      String?   @db.VarChar(20)
+  nm_rincian      String?   @db.VarChar(225)
+  kd_sub_kegiatan String?   @db.VarChar(50)
+  nm_sub_kegiatan String?   @db.VarChar(225)
+  kd_spm          String?   @db.Char(5)
+  nm_spm          String?   @db.VarChar(225)
+  
+  // Rincian fields pulled up to header for easier reporting (from first rincian)
+  kd_rek6               String? @db.VarChar(50)
+  nm_rek6               String? @db.VarChar(100)
+  sumdan                String? @db.VarChar(225)
+  nm_sumdan             String? @db.VarChar(225)
+
   status                String    @default("belum_dibayar") // belum_dibayar, proses_bayar, lunas
   tgl_dibuat            DateTime  @default(now())
   updated_at            DateTime  @updatedAt
 
-  penerimaan_barang     PenerimaanBarang @relation(fields: [penerimaan_barang_id], references: [id])
+  penerimaan_barang     PenerimaanBarang? @relation(fields: [penerimaan_barang_id], references: [id])
+  permintaan_belanja    PermintaanBelanja? @relation(fields: [permintaan_belanja_id], references: [id])
+  rincian               RincianTagihan[]
   spp                   SPP[]
   bku                   BKU[]
 
   @@map("tbl_tagihan")
 }
 
+model RincianTagihan {
+  id                    Int       @id @default(autoincrement())
+  tagihan_id            Int
+  
+  kd_rek6               String? @db.VarChar(50)
+  nm_rek6               String? @db.VarChar(100)
+  uraian                String? @db.Text
+  
+  kd_ukm          String?   @db.VarChar(20)
+  nm_ukm          String?   @db.VarChar(100)
+  kd_peruntukan   String?   @db.VarChar(20)
+  nm_peruntukan   String?   @db.VarChar(100)
+  kd_komponen     String?   @db.VarChar(20)
+  nm_komponen     String?   @db.VarChar(225)
+  kd_rincian      String?   @db.VarChar(20)
+  nm_rincian      String?   @db.VarChar(225)
+  kd_sub_kegiatan String?   @db.VarChar(50)
+  nm_sub_kegiatan String?   @db.VarChar(225)
+  kd_spm          String?   @db.Char(5)
+  nm_spm          String?   @db.VarChar(225)
+  
+  volume                Float?
+  satuan                String? @db.VarChar(50)
+  harga                 Float?
+  total                 Float?
+  sumdan                String? @db.VarChar(225)
+  nm_sumdan             String? @db.VarChar(225)
+
+  tagihan               Tagihan @relation(fields: [tagihan_id], references: [id], onDelete: Cascade)
+
+  @@map("tbl_rincian_tagihan")
+}
