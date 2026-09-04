@@ -58,8 +58,11 @@ export default function RKAPage() {
     keterangan: "",
   });
 
+  const [tahunList, setTahunList] = useState<TahunAnggaran[]>([]);
+
   useEffect(() => {
     fetch("/api/me").then((r) => r.json()).then((d) => d.user && setUser(d.user));
+    fetch("/api/master/tahun").then((r) => r.json()).then((d) => setTahunList(d.data || []));
     const tId = localStorage.getItem("tahunAnggaran");
     const tName = localStorage.getItem("tahunName");
     if (tId) setSelectedTahun(parseInt(tId));

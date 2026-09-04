@@ -24,7 +24,7 @@ export async function GET(req: NextRequest) {
     let selectedUpt = "";
     if (auth.role !== "superadmin") {
       where.kdUpt = auth.kd_upt;
-      selectedUpt = auth.kd_upt;
+      selectedUpt = auth.kd_upt || "";
     } else {
       const kd_upt = searchParams.get("kd_upt");
       if (kd_upt) {

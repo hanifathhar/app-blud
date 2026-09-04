@@ -151,21 +151,12 @@ export default function ProfilePage() {
       <Sidebar
         sidebarOpen={sidebarOpen}
         setSidebarOpen={setSidebarOpen}
-        active="profile"
       />
 
       <div className="flex-1 flex flex-col overflow-y-auto">
 
         <Header
-          user={user}
-          onMenuClick={() => setSidebarOpen(true)}
-          onLogout={async () => {
-            await fetch("/api/auth/logout", {
-              method: "POST",
-            });
-
-            window.location.href = "/login";
-          }}
+          setSidebarOpen={setSidebarOpen}
         />
 
         <main className="p-6 space-y-6">

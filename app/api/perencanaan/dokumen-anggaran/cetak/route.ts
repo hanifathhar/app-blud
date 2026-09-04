@@ -169,7 +169,7 @@ export async function GET(req: NextRequest) {
       if (r.kd_rek3 && r.nm_rek3) rek3Dict[r.kd_rek3.trim()] = r.nm_rek3;
     });
 
-    let spmMaster = [];
+    let spmMaster: any[] = [];
     if (jenis === "rka_spm") {
       spmMaster = await prisma.msSpm.findMany({
         orderBy: { kd_spm: "asc" }

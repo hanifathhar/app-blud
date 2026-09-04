@@ -1,8 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import Link from "next/link";
-import { Plus, Pencil, Trash, Info, Eye, Lock } from "lucide-react";
+import { Plus, Info, Pencil, Trash } from "lucide-react";
+import { useRouter } from "next/navigation";
 import Select from "react-select";
 import Swal from "sweetalert2";
 import {
@@ -16,7 +16,8 @@ function formatRupiah(val: number) {
   return new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(val);
 }
 
-export default function TagihanPage() {
+export default function PengeluaranPage() {
+  const router = useRouter();
   const [list, setList] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -28,9 +29,32 @@ export default function TagihanPage() {
   const [detailItem, setDetailItem] = useState<any>(null);
   const limit = 10;
 
+  const handleDelete = async (id: number) => {
+    const result = await Swal.fire({
+      title: "Hapus Pengeluaran?",
+      html: "Data pengeluaran akan dihapus dan <strong>status tagihan akan dikembalikan</strong> ke belum dibayar.",
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonColor: "#ef4444",
+      cancelButtonColor: "#64748b",
+      confirmButtonText: "Ya, Hapus",
+      cancelButtonText: "Batal",
+    });
+    if (!result.isConfirmed) return;
+
+    const res = await fetch(`/api/penatausahaan/belanja/pengeluaran/${id}`, { method: "DELETE" });
+    if (res.ok) {
+      Swal.fire("Terhapus!", "Data pengeluaran dihapus dan tagihan dikembalikan.", "success");
+      loadData();
+    } else {
+      const err = await res.json();
+      Swal.fire("Gagal!", err.error || "Gagal menghapus data", "error");
+    }
+  };
+
   const loadData = () => {
     setLoading(true);
-    fetch(`/api/penatausahaan/belanja/tagihan?page=${page}&limit=${limit}&search=${search}&kd_upt=${filterUpt}`)
+    fetch(`/api/penatausahaan/belanja/pengeluaran?page=${page}&limit=${limit}&search=${search}&kd_upt=${filterUpt}`)
       .then((r) => r.json())
       .then((d) => {
         setList(d.data || []);
@@ -52,43 +76,17 @@ export default function TagihanPage() {
     loadData();
   }, [page, search, filterUpt]);
 
-  const handleDelete = async (id: number) => {
-    const result = await Swal.fire({
-      title: 'Hapus Tagihan?',
-      text: "Data yang dihapus tidak dapat dikembalikan!",
-      icon: 'warning',
-      showCancelButton: true,
-      confirmButtonColor: '#ef4444',
-      cancelButtonColor: '#64748b',
-      confirmButtonText: 'Ya, Hapus',
-      cancelButtonText: 'Batal'
-    });
-
-    if (!result.isConfirmed) return;
-
-    const res = await fetch(`/api/penatausahaan/belanja/tagihan/${id}`, { method: "DELETE" });
-    if (res.ok) {
-      Swal.fire('Terhapus!', 'Data Tagihan telah dihapus.', 'success');
-      loadData();
-    } else {
-      const err = await res.json();
-      Swal.fire('Gagal!', err.error || err.message || "Gagal menghapus data", 'error');
-    }
-  };
-
   return (
     <div className="animate-fadein">
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 24 }}>
         <div>
-          <h1 style={{ fontSize: 22, fontWeight: 800, color: "#0F172A" }}>🧾 Tagihan (Invoice)</h1>
-          <p style={{ fontSize: 13, color: "#64748B", marginTop: 2 }}>Kelola Tagihan masuk untuk dibayarkan</p>
+          <h1 style={{ fontSize: 22, fontWeight: 800, color: "#0F172A" }}>💸 Pengeluaran</h1>
+          <p style={{ fontSize: 13, color: "#64748B", marginTop: 2 }}>Pembukuan Tagihan menjadi Pengeluaran</p>
         </div>
         <div style={{ display: "flex", gap: 12 }}>
-          <Link href="/dashboard/penatausahaan/belanja/tagihan/tambah">
-            <button className="btn btn-primary">
-              <Plus size={16} /> Tambah Tagihan
-            </button>
-          </Link>
+          <button className="btn btn-primary" onClick={() => router.push("/dashboard/penatausahaan/belanja/pengeluaran/tambah")}>
+            <Plus size={16} /> Bukukan Tagihan
+          </button>
         </div>
       </div>
 
@@ -114,7 +112,7 @@ export default function TagihanPage() {
             type="text"
             className="form-input"
             style={{ flex: 1, minWidth: 250, minHeight: '42px' }}
-            placeholder="Cari No. Tagihan, Penerima, Uraian..."
+            placeholder="Cari No. Pengeluaran, Vendor, Keterangan..."
             value={search}
             onChange={e => setSearch(e.target.value)}
           />
@@ -126,74 +124,49 @@ export default function TagihanPage() {
               <tr>
                 <th style={{ width: 40, textAlign: "center" }}>No</th>
                 <th>UPT</th>
-                <th>No. Tagihan</th>
-                <th>Tgl Tagihan</th>
-                <th>Penerima</th>
-                <th>Uraian</th>
+                <th>No. Pengeluaran</th>
+                <th>Tgl Pengeluaran</th>
+                <th>Vendor / Penerima</th>
+                <th>Keterangan</th>
                 <th>Sumber Dana</th>
                 <th style={{ textAlign: "right" }}>Nilai (Rp)</th>
-                <th style={{ textAlign: "center" }}>Status</th>
                 <th style={{ textAlign: "center" }}>Aksi</th>
               </tr>
             </thead>
             <tbody>
               {loading ? (
-                <tr><td colSpan={8} className="text-center p-6 text-gray-500"><div className="loading-spinner" style={{ margin: "0 auto" }} /></td></tr>
+                <tr><td colSpan={9} className="text-center p-6 text-gray-500"><div className="loading-spinner" style={{ margin: "0 auto" }} /></td></tr>
               ) : list.length === 0 ? (
-                <tr><td colSpan={8} className="text-center p-6 text-gray-500">Belum ada data tagihan</td></tr>
+                <tr><td colSpan={9} className="text-center p-6 text-gray-500">Belum ada data pengeluaran</td></tr>
               ) : (
                 list.map((item, idx) => (
                   <tr key={item.id}>
                     <td style={{ textAlign: "center" }}>{(page - 1) * limit + idx + 1}</td>
-                    <td>{upts.find(u => u.kd_upt === (item.permintaan_belanja?.kd_upt || item.penerimaan_barang?.pengadaan?.kd_upt))?.nm_upt || (item.permintaan_belanja?.kd_upt || item.penerimaan_barang?.pengadaan?.kd_upt) || "-"}</td>
+                    <td>{item.nm_upt || "-"}</td>
                     <td style={{ fontWeight: 600, color: "#2563EB" }}>
-                      {item.no_tagihan || "-"}
+                      {item.no_pengeluaran || "-"}
                       <br />
                       <span style={{ fontSize: '11px', color: '#64748B', fontWeight: 'normal' }}>
-                        {item.permintaan_belanja_id ? "Non-Pengadaan" : "Pengadaan"}
+                        Ref Tagihan: {item.tagihan?.no_tagihan || "-"}
                       </span>
                     </td>
-                    <td>{item.tgl_tagihan ? new Date(item.tgl_tagihan).toLocaleDateString("id-ID") : "-"}</td>
-                    <td>{item.nm_vendor || item.penerimaan_barang?.pengadaan?.nm_vendor || item.permintaan_belanja?.nm_ukm || "-"}</td>
+                    <td>{item.tgl_pengeluaran ? new Date(item.tgl_pengeluaran).toLocaleDateString("id-ID") : "-"}</td>
+                    <td>{item.nm_vendor || "-"}</td>
                     <td>{item.keterangan || "-"}</td>
                     <td>{Array.from(new Set(item.rincian?.map((r: any) => r.sumdan).filter(Boolean))).join(", ") || "-"}</td>
-                    <td style={{ textAlign: "right", fontWeight: 700 }}>{formatRupiah(item.nilai_tagihan || 0)}</td>
-                    <td style={{ textAlign: "center" }}>
-                      {item.status === "lunas" ? (
-                        <span className="badge" style={{ backgroundColor: "#dcfce7", color: "#166534", display: "inline-flex", alignItems: "center", gap: 4 }}>
-                          <Lock size={10} /> Dibukukan
-                        </span>
-                      ) : (
-                        <span className="badge" style={{ backgroundColor: "#fef3c7", color: "#92400e" }}>
-                          {item.status.replace("_", " ")}
-                        </span>
-                      )}
-                    </td>
+                    <td style={{ textAlign: "right", fontWeight: 700 }}>{formatRupiah(item.nilai_pengeluaran || 0)}</td>
                     <td className="p-3 text-center">
                       <div style={{ display: "flex", gap: "8px", justifyContent: "center" }}>
-                        {item.status === "lunas" ? (
-                          /* Sudah dibukukan — hanya tampilkan View */
-                          <button
-                            onClick={() => setDetailItem(item)}
-                            className="btn btn-outline btn-sm"
-                            title="Lihat Detail (Terkunci - sudah dibukukan)"
-                            style={{ color: "#64748B" }}
-                          >
-                            <Eye size={12} />
-                          </button>
-                        ) : (
-                          /* Belum dibukukan — tampilkan Edit & Hapus */
-                          <>
-                            <Link href={`/dashboard/penatausahaan/belanja/tagihan/edit/${item.id}`}>
-                              <button className="btn btn-outline btn-sm" title="Edit">
-                                <Pencil size={12} />
-                              </button>
-                            </Link>
-                            <button onClick={() => handleDelete(item.id)} className="btn btn-danger btn-sm" title="Hapus">
-                              <Trash size={12} />
-                            </button>
-                          </>
-                        )}
+                        <button
+                          onClick={() => router.push(`/dashboard/penatausahaan/belanja/pengeluaran/edit/${item.id}`)}
+                          className="btn btn-outline btn-sm"
+                          title="Edit"
+                        >
+                          <Pencil size={12} />
+                        </button>
+                        <button onClick={() => handleDelete(item.id)} className="btn btn-danger btn-sm" title="Hapus">
+                          <Trash size={12} />
+                        </button>
                       </div>
                     </td>
                   </tr>
@@ -230,18 +203,19 @@ export default function TagihanPage() {
         )}
       </div>
 
+      {/* Dialog Detail */}
       <Dialog open={!!detailItem} onOpenChange={(open) => { if (!open) setDetailItem(null); }}>
         <DialogContent style={{ maxWidth: "700px", borderRadius: "12px" }}>
           <DialogHeader>
             <DialogTitle style={{ fontSize: "18px", fontWeight: 700 }}>
-              Informasi Rincian Belanja Tagihan
+              Informasi Rincian Pengeluaran
             </DialogTitle>
           </DialogHeader>
           {detailItem && (
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px", marginTop: "16px", fontSize: "14px" }}>
               <div style={{ backgroundColor: "#F8FAFC", padding: "12px", borderRadius: "8px", border: "1px solid #E2E8F0", gridColumn: "span 2" }}>
-                <div style={{ color: "#64748B", fontSize: "12px", fontWeight: 600 }}>Nomor Tagihan</div>
-                <div style={{ color: "#0F172A", fontWeight: 500 }}>{detailItem.no_tagihan || "-"}</div>
+                <div style={{ color: "#64748B", fontSize: "12px", fontWeight: 600 }}>Nomor Pengeluaran</div>
+                <div style={{ color: "#0F172A", fontWeight: 500 }}>{detailItem.no_pengeluaran || "-"}</div>
               </div>
               <div style={{ backgroundColor: "#F8FAFC", padding: "12px", borderRadius: "8px", border: "1px solid #E2E8F0" }}>
                 <div style={{ color: "#64748B", fontSize: "12px", fontWeight: 600 }}>UKM</div>

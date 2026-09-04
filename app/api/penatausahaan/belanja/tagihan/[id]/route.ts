@@ -62,6 +62,12 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
       nm_vendor,
     } = body;
 
+    const existing = await prisma.tagihan.findUnique({ where: { id } });
+    if (!existing) return NextResponse.json({ error: "Data tidak ditemukan" }, { status: 404 });
+    if (existing.status === "lunas") {
+      return NextResponse.json({ error: "Tagihan sudah dibukukan sebagai pengeluaran, tidak dapat diedit." }, { status: 400 });
+    }
+
     const updated = await prisma.tagihan.update({
       where: { id },
       data: {
@@ -106,9 +112,13 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
     if (!tagihan) {
       return NextResponse.json({ error: "Data tidak ditemukan" }, { status: 404 });
     }
+    if (tagihan.status === "lunas") {
+      return NextResponse.json({ error: "Tagihan sudah dibukukan sebagai pengeluaran, tidak dapat dihapus." }, { status: 400 });
+    }
 
     // TODO: Cek apakah tagihan sudah masuk SPP (jika ada tabel SPP)
     // if (checkSPP) return error;
+
 
     await prisma.$transaction(async (tx) => {
       await tx.tagihan.delete({

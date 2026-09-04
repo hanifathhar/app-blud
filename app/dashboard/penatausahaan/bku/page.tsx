@@ -47,8 +47,42 @@ export default function BKUPage() {
 
   const [form, setForm] = useState({
     no_bukti: "", tgl_transaksi: "", uraian: "",
-    debet: "", kredit: "", kd_rek6: "", jenis: "kas",
+    debet: "", kredit: "", kd_rek6: "", jenis: "kas", tagihan_id: "",
   });
+  const [tagihanList, setTagihanList] = useState<any[]>([]);
+
+  useEffect(() => {
+    if (showForm && user) {
+      fetch(`/api/penatausahaan/belanja/tagihan?limit=100&kd_upt=${user.kd_upt || ""}`)
+        .then(r => r.json())
+        .then(d => {
+          if (d.data) {
+            setTagihanList(d.data.filter((t: any) => t.status === "belum_dibayar"));
+          }
+        });
+    }
+  }, [showForm, user]);
+
+  const handleSelectTagihan = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const id = e.target.value;
+    if (!id) {
+      setForm({ ...form, tagihan_id: "", uraian: "", kredit: "", kd_rek6: "" });
+      return;
+    }
+    const tag = tagihanList.find(t => t.id.toString() === id);
+    if (tag) {
+      setForm({
+        ...form,
+        tagihan_id: id,
+        uraian: `Pembayaran Tagihan ${tag.no_tagihan} - ${tag.nm_vendor || tag.keterangan || ""}`,
+        kredit: tag.nilai_tagihan?.toString() || "",
+        debet: "0",
+        kd_rek6: tag.kd_rek6 || "",
+        jenis: "bank",
+        tgl_transaksi: new Date().toISOString().split("T")[0]
+      });
+    }
+  };
 
   const loadData = () => {
     setLoading(true);
@@ -80,7 +114,7 @@ export default function BKUPage() {
     });
     if (res.ok) {
       setShowForm(false);
-      setForm({ no_bukti: "", tgl_transaksi: "", uraian: "", debet: "", kredit: "", kd_rek6: "", jenis: "kas" });
+      setForm({ no_bukti: "", tgl_transaksi: "", uraian: "", debet: "", kredit: "", kd_rek6: "", jenis: "kas", tagihan_id: "" });
       loadData();
     }
     setSubmitting(false);
@@ -140,6 +174,17 @@ export default function BKUPage() {
             </div>
             <form onSubmit={handleSubmit}>
               <div className="modal-body" style={{ display: "grid", gap: 14 }}>
+                {tagihanList.length > 0 && (
+                  <div>
+                    <label className="form-label" style={{ color: "#2563EB", fontWeight: 600 }}>Ambil dari Tagihan (Opsional)</label>
+                    <select className="form-select" value={form.tagihan_id} onChange={handleSelectTagihan} style={{ borderColor: "#BFDBFE", backgroundColor: "#EFF6FF" }}>
+                      <option value="">-- Pilih Tagihan Belum Dibayar --</option>
+                      {tagihanList.map(t => (
+                        <option key={t.id} value={t.id}>{t.no_tagihan} - {formatRupiah(t.nilai_tagihan || 0)} - {t.nm_vendor || t.keterangan}</option>
+                      ))}
+                    </select>
+                  </div>
+                )}
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
                   <div>
                     <label className="form-label">No. Bukti</label>

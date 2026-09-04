@@ -4,7 +4,7 @@ import React, { useState, useEffect, use } from "react";
 import { ArrowLeft, Printer } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 
-export default function CetakRKAPage({ params }: { params: Promise<{ kdUnit: string, nomor_penetapan: string }> }) {
+function CetakRKAPageContent({ params }: { params: Promise<{ kdUnit: string, nomor_penetapan: string }> }) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const resolvedParams = use(params);
@@ -976,3 +976,14 @@ const styles: Record<string, React.CSSProperties> = {
   tdRightBold: { border: "1px solid #000", padding: "4px 6px", textAlign: "right", fontWeight: "bold", verticalAlign: "top" }
 };
 
+
+
+import { Suspense } from 'react';
+
+export default function CetakRKAPage({ params }: { params: Promise<{ kdUnit: string, nomor_penetapan: string }> }) {
+  return (
+    <Suspense fallback={<div>Memuat...</div>}>
+      <CetakRKAPageContent params={params} />
+    </Suspense>
+  );
+}

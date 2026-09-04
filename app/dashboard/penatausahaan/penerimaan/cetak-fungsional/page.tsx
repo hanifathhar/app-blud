@@ -7,7 +7,7 @@ function formatNumber(val: number) {
   return new Intl.NumberFormat("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(val);
 }
 
-export default function CetakFungsionalPage() {
+function CetakFungsionalPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [data, setData] = useState<any[]>([]);
@@ -207,5 +207,16 @@ export default function CetakFungsionalPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+
+import { Suspense } from 'react';
+
+export default function CetakFungsionalPage() {
+  return (
+    <Suspense fallback={<div>Memuat...</div>}>
+      <CetakFungsionalPageContent />
+    </Suspense>
   );
 }

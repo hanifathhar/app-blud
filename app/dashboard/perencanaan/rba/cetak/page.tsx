@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 
-export default function CetakRbaPage() {
+function CetakRbaPageContent() {
   const searchParams = useSearchParams();
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -279,5 +279,16 @@ export default function CetakRbaPage() {
         )}
       </div>
     </>
+  );
+}
+
+
+import { Suspense } from 'react';
+
+export default function CetakRbaPage() {
+  return (
+    <Suspense fallback={<div>Memuat...</div>}>
+      <CetakRbaPageContent />
+    </Suspense>
   );
 }

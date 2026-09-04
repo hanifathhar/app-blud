@@ -7,7 +7,7 @@ function formatRupiah(val: number) {
   return new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(val);
 }
 
-export default function CetakPenerimaanPage() {
+function CetakPenerimaanPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [data, setData] = useState<any>(null);
@@ -170,5 +170,16 @@ export default function CetakPenerimaanPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+
+import { Suspense } from 'react';
+
+export default function CetakPenerimaanPage() {
+  return (
+    <Suspense fallback={<div>Memuat...</div>}>
+      <CetakPenerimaanPageContent />
+    </Suspense>
   );
 }

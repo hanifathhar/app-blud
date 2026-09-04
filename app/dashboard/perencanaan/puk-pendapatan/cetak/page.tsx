@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 
-export default function CetakPukPage() {
+function CetakPukPageContent() {
   const searchParams = useSearchParams();
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -174,5 +174,16 @@ export default function CetakPukPage() {
         )}
       </div>
     </>
+  );
+}
+
+
+import { Suspense } from 'react';
+
+export default function CetakPukPage() {
+  return (
+    <Suspense fallback={<div>Memuat...</div>}>
+      <CetakPukPageContent />
+    </Suspense>
   );
 }
