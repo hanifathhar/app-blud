@@ -1,8 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { PrismaClient } from "@prisma/client";
+import { prisma } from "@/lib/prisma";
 import { getUserFromRequest } from "@/lib/auth";
-
-const prisma = new PrismaClient();
 
 export async function GET(req: NextRequest) {
   try {
@@ -42,6 +40,16 @@ export async function GET(req: NextRequest) {
       where: { kd_upt: selectedUpt }
     });
 
+    // Get Penandatangan KPA (kode 1)
+    const penandatangan = await prisma.penandatangan.findFirst({
+      where: {
+        kd_upt: selectedUpt,
+        kode: 1,
+        status: 1
+      },
+      orderBy: { id: "desc" }
+    });
+
     const dataRaw = await prisma.tblPuk.findMany({
       where,
       orderBy: [
@@ -62,6 +70,7 @@ export async function GET(req: NextRequest) {
 
     return NextResponse.json({
       upt,
+      penandatangan,
       data: dataRaw,
       tahun
     });

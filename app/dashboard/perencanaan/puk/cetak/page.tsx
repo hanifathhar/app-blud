@@ -43,7 +43,7 @@ function CetakPukPageContent() {
   if (error) return <div style={{ padding: 40, textAlign: "center", color: "red" }}>{error}</div>;
   if (!data) return null;
 
-  const { upt, data: listRaw, tahun } = data;
+  const { upt, penandatangan, data: listRaw, tahun } = data;
   const printDateStr = searchParams.get("tgl") || "";
 
   let formattedPrintDate = printDateStr;
@@ -264,14 +264,21 @@ function CetakPukPageContent() {
 
         {formattedPrintDate && (
           <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 40, pageBreakInside: "avoid" }}>
-            <div style={{ textAlign: "center", width: 250 }}>
+            <div style={{ textAlign: "center", width: 280 }}>
               <div style={{ marginBottom: 60 }}>
                 {upt?.nm_upt ? upt.nm_upt + ", " : ""}{formattedPrintDate}
                 <br />
-                Pimpinan / Kepala Puskesmas
+                {penandatangan?.jabatan || "Kuasa Pengguna Anggaran (KPA)"}
               </div>
-              <div style={{ borderBottom: "1px solid #000", height: 1 }}></div>
-              <div style={{ marginTop: 4, fontWeight: "bold" }}>NIP. .........................</div>
+              <div style={{ fontWeight: "bold", textDecoration: "underline" }}>
+                {penandatangan?.nama || "..................................................."}
+              </div>
+              {penandatangan?.pangkat_golongan && (
+                <div style={{ fontSize: "9pt", marginTop: 2 }}>{penandatangan.pangkat_golongan}</div>
+              )}
+              <div style={{ marginTop: 2, fontWeight: "bold" }}>
+                {penandatangan?.nip ? `NIP. ${penandatangan.nip}` : "NIP. ........................."}
+              </div>
             </div>
           </div>
         )}

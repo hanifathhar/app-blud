@@ -955,6 +955,27 @@ function CetakRKAPageContent({ params }: { params: Promise<{ kdUnit: string, nom
             </tbody>
           </table>
         )}
+
+        {/* Signature Block */}
+        <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 30, pageBreakInside: "avoid" }}>
+          <div style={{ textAlign: "center", width: 280, fontSize: "11px" }}>
+            <div style={{ marginBottom: 55 }}>
+              {data?.penetapan?.nmUnit ? `${data.penetapan.nmUnit}, ` : ""}
+              {new Date().toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" })}
+              <br />
+              <b>{data?.penandatangan?.jabatan || "Kuasa Pengguna Anggaran (KPA)"}</b>
+            </div>
+            <div style={{ fontWeight: "bold", textDecoration: "underline", fontSize: "12px" }}>
+              {data?.penandatangan?.nama || "..................................................."}
+            </div>
+            {data?.penandatangan?.pangkat_golongan && (
+              <div style={{ fontSize: "11px", marginTop: 2 }}>{data.penandatangan.pangkat_golongan}</div>
+            )}
+            <div style={{ marginTop: 2, fontWeight: "bold" }}>
+              {data?.penandatangan?.nip ? `NIP. ${data.penandatangan.nip}` : "NIP. ........................."}
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );

@@ -117,7 +117,7 @@ const menus: MenuItem[] = [
     label: "Master Data",
     href: "#",
     icon: <Building2 size={17} />,
-    roles: ["superadmin"],
+    roles: ["superadmin", "kpa", "keuangan", "perencana", "bendahara"],
     children: [
       { label: "Data UPT", href: "/dashboard/master/upt", roles: ["superadmin"] },
       { label: "Tahun Anggaran", href: "/dashboard/master/tahun", roles: ["superadmin"] },
@@ -130,6 +130,7 @@ const menus: MenuItem[] = [
       { label: "Sub Komponen Kegiatan", href: "/dashboard/master/sub-komponen-kegiatan", roles: ["superadmin"] },
       { label: "SPM", href: "/dashboard/master/spm", roles: ["superadmin"] },
       { label: "Sumber Dana", href: "/dashboard/master/sumber-dana", roles: ["superadmin"] },
+      { label: "Penandatanganan", href: "/dashboard/master/penandatanganan", roles: ["superadmin", "kpa", "keuangan", "bendahara"] },
     ],
   },
   {

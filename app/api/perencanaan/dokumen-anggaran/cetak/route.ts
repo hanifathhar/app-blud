@@ -1,8 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { PrismaClient } from "@prisma/client";
+import { prisma } from "@/lib/prisma";
 import { getUserFromRequest } from "@/lib/auth";
-
-const prisma = new PrismaClient();
 
 export async function GET(req: NextRequest) {
   try {
@@ -23,6 +21,16 @@ export async function GET(req: NextRequest) {
     if (auth.role !== "superadmin" && auth.kd_upt !== kdUnit) {
       return NextResponse.json({ success: false, message: "Akses ditolak" }, { status: 403 });
     }
+
+    // Get Penandatangan KPA (kode 1)
+    const penandatangan = await prisma.penandatangan.findFirst({
+      where: {
+        kd_upt: kdUnit,
+        kode: 1,
+        status: 1
+      },
+      orderBy: { id: "desc" }
+    });
 
     const penetapanList = await prisma.tblRbaPenetapan.findMany({
       where: { kdUnit, nomor_penetapan },
@@ -197,7 +205,8 @@ export async function GET(req: NextRequest) {
         metadata,
         rek2Dict,
         rek3Dict,
-        spmMaster
+        spmMaster,
+        penandatangan
       }
     });
   } catch (error: any) {

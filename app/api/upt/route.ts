@@ -1,8 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { PrismaClient } from "@prisma/client";
+import { prisma } from "@/lib/prisma";
 import { getUserFromRequest } from "@/lib/auth";
-
-const prisma = new PrismaClient();
 
 // GET all UPT
 export async function GET(req: NextRequest) {
@@ -12,9 +10,9 @@ export async function GET(req: NextRequest) {
 
     const searchParams = req.nextUrl.searchParams;
     const q = searchParams.get("q") || "";
-    const page = parseInt(searchParams.get("page") || "1");
-    const limit = parseInt(searchParams.get("limit") || "10");
-    const skip = (page - 1) * limit;
+    const pageParam = searchParams.get("page");
+    const limitParam = searchParams.get("limit");
+    const all = searchParams.get("all") === "true";
 
     const where: any = q ? {
       OR: [
@@ -22,6 +20,27 @@ export async function GET(req: NextRequest) {
         { kd_upt: { contains: q, mode: "insensitive" } },
       ]
     } : undefined;
+
+    // Jika tidak ada pagination atau all=true, kembalikan seluruh data UPT
+    if ((!pageParam && !limitParam) || all || limitParam === "all") {
+      const data = await prisma.msUpt.findMany({
+        where,
+        orderBy: { nm_upt: "asc" }
+      });
+      return NextResponse.json({ 
+        data, 
+        pagination: { 
+          total: data.length, 
+          page: 1, 
+          limit: data.length, 
+          totalPages: 1 
+        } 
+      });
+    }
+
+    const page = parseInt(pageParam || "1");
+    const limit = parseInt(limitParam || "10");
+    const skip = (page - 1) * limit;
 
     const [data, total] = await Promise.all([
       prisma.msUpt.findMany({

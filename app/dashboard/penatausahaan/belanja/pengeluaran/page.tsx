@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Plus, Info, Pencil, Trash } from "lucide-react";
+import { Plus, Info, Pencil, Trash, CheckCircle, XCircle, ShieldCheck, FileText, Eye, CheckCircle2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import Select from "react-select";
 import Swal from "sweetalert2";
@@ -27,6 +27,9 @@ export default function PengeluaranPage() {
   const [filterUpt, setFilterUpt] = useState("");
   const [user, setUser] = useState<any>(null);
   const [detailItem, setDetailItem] = useState<any>(null);
+  const [totalNilai, setTotalNilai] = useState(0);
+  const [totalVerified, setTotalVerified] = useState(0);
+  const [totalUnverified, setTotalUnverified] = useState(0);
   const limit = 10;
 
   const handleDelete = async (id: number) => {
@@ -52,12 +55,54 @@ export default function PengeluaranPage() {
     }
   };
 
+  const handleVerifikasi = async (id: number, action: "verifikasi" | "batal_verifikasi") => {
+    const isVerif = action === "verifikasi";
+    const textTitle = isVerif ? "Verifikasi Pengeluaran?" : "Batalkan Verifikasi?";
+    const textMsg = isVerif
+      ? "Data pengeluaran akan disahkan dan tidak dapat diedit atau dihapus."
+      : "Status pengeluaran akan dikembalikan ke Draft / Belum Diverifikasi.";
+
+    const result = await Swal.fire({
+      title: textTitle,
+      text: textMsg,
+      icon: "question",
+      showCancelButton: true,
+      confirmButtonColor: isVerif ? "#10b981" : "#f59e0b",
+      cancelButtonColor: "#64748b",
+      confirmButtonText: isVerif ? "Ya, Verifikasi" : "Ya, Batalkan",
+      cancelButtonText: "Batal",
+    });
+
+    if (!result.isConfirmed) return;
+
+    try {
+      const res = await fetch("/api/penatausahaan/belanja/pengeluaran/verifikasi", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id, action }),
+      });
+
+      const data = await res.json();
+      if (res.ok && data.success) {
+        Swal.fire("Berhasil!", data.message || "Status berhasil diperbarui.", "success");
+        loadData();
+      } else {
+        Swal.fire("Gagal!", data.message || "Gagal memverifikasi pengeluaran", "error");
+      }
+    } catch (err: any) {
+      Swal.fire("Error!", err.message || "Terjadi kesalahan sistem", "error");
+    }
+  };
+
   const loadData = () => {
     setLoading(true);
     fetch(`/api/penatausahaan/belanja/pengeluaran?page=${page}&limit=${limit}&search=${search}&kd_upt=${filterUpt}`)
       .then((r) => r.json())
       .then((d) => {
         setList(d.data || []);
+        setTotalNilai(d.totalNilai || 0);
+        setTotalVerified(d.totalVerified || 0);
+        setTotalUnverified(d.totalUnverified || 0);
         setTotalPages(d.pagination?.totalPages || 1);
       })
       .finally(() => setLoading(false));
@@ -76,17 +121,39 @@ export default function PengeluaranPage() {
     loadData();
   }, [page, search, filterUpt]);
 
+  // Hak Akses: Superadmin, KPA, dan Keuangan dapat memverifikasi pengeluaran
+  const canVerify = user && (["superadmin", "kpa", "keuangan"].includes(user.role) || [1, 2, 4].includes(user.level));
+  const canCreate = user && (["superadmin", "bendahara"].includes(user.role) || [1, 5].includes(user.level));
+
   return (
     <div className="animate-fadein">
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 24 }}>
         <div>
           <h1 style={{ fontSize: 22, fontWeight: 800, color: "#0F172A" }}>💸 Pengeluaran</h1>
-          <p style={{ fontSize: 13, color: "#64748B", marginTop: 2 }}>Pembukuan Tagihan menjadi Pengeluaran</p>
+          <p style={{ fontSize: 13, color: "#64748B", marginTop: 2 }}>Pembukuan Tagihan menjadi Pengeluaran & Verifikasi Belanja</p>
         </div>
         <div style={{ display: "flex", gap: 12 }}>
-          <button className="btn btn-primary" onClick={() => router.push("/dashboard/penatausahaan/belanja/pengeluaran/tambah")}>
-            <Plus size={16} /> Bukukan Tagihan
-          </button>
+          {canCreate && (
+            <button className="btn btn-primary" onClick={() => router.push("/dashboard/penatausahaan/belanja/pengeluaran/tambah")}>
+              <Plus size={16} /> Bukukan Tagihan
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* Summary Cards */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: 16, marginBottom: 24 }}>
+        <div style={{ background: "linear-gradient(135deg, #1E293B, #0F172A)", color: "#fff", padding: 20, borderRadius: 12, boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1)" }}>
+          <p style={{ fontSize: 13, fontWeight: 500, opacity: 0.8 }}>Total Seluruh Pengeluaran</p>
+          <h2 style={{ fontSize: 24, fontWeight: 700, marginTop: 6 }}>{formatRupiah(totalNilai)}</h2>
+        </div>
+        <div style={{ background: "linear-gradient(135deg, #059669, #10B981)", color: "#fff", padding: 20, borderRadius: 12, boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1)" }}>
+          <p style={{ fontSize: 13, fontWeight: 500, opacity: 0.85 }}>Pengeluaran Terverifikasi</p>
+          <h2 style={{ fontSize: 24, fontWeight: 700, marginTop: 6 }}>{formatRupiah(totalVerified)}</h2>
+        </div>
+        <div style={{ background: "linear-gradient(135deg, #D97706, #F59E0B)", color: "#fff", padding: 20, borderRadius: 12, boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1)" }}>
+          <p style={{ fontSize: 13, fontWeight: 500, opacity: 0.85 }}>Belum Diverifikasi (Draft)</p>
+          <h2 style={{ fontSize: 24, fontWeight: 700, marginTop: 6 }}>{formatRupiah(totalUnverified)}</h2>
         </div>
       </div>
 
@@ -130,14 +197,15 @@ export default function PengeluaranPage() {
                 <th>Keterangan</th>
                 <th>Sumber Dana</th>
                 <th style={{ textAlign: "right" }}>Nilai (Rp)</th>
+                <th style={{ textAlign: "center" }}>Status</th>
                 <th style={{ textAlign: "center" }}>Aksi</th>
               </tr>
             </thead>
             <tbody>
               {loading ? (
-                <tr><td colSpan={9} className="text-center p-6 text-gray-500"><div className="loading-spinner" style={{ margin: "0 auto" }} /></td></tr>
+                <tr><td colSpan={10} className="text-center p-6 text-gray-500"><div className="loading-spinner" style={{ margin: "0 auto" }} /></td></tr>
               ) : list.length === 0 ? (
-                <tr><td colSpan={9} className="text-center p-6 text-gray-500">Belum ada data pengeluaran</td></tr>
+                <tr><td colSpan={10} className="text-center p-6 text-gray-500">Belum ada data pengeluaran</td></tr>
               ) : (
                 list.map((item, idx) => (
                   <tr key={item.id}>
@@ -155,18 +223,66 @@ export default function PengeluaranPage() {
                     <td>{item.keterangan || "-"}</td>
                     <td>{Array.from(new Set(item.rincian?.map((r: any) => r.sumdan).filter(Boolean))).join(", ") || "-"}</td>
                     <td style={{ textAlign: "right", fontWeight: 700 }}>{formatRupiah(item.nilai_pengeluaran || 0)}</td>
+                    <td style={{ textAlign: "center" }}>
+                      {item.verif === 1 ? (
+                        <span className="badge badge-diverifikasi" style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
+                          <CheckCircle size={12} /> Terverifikasi
+                        </span>
+                      ) : (
+                        <span className="badge badge-draft" style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
+                          <FileText size={12} /> Draft
+                        </span>
+                      )}
+                      {item.verif === 1 && item.user_verif && (
+                        <div style={{ fontSize: 10, color: "#64748B", marginTop: 2 }}>
+                          Oleh: {item.user_verif}
+                        </div>
+                      )}
+                    </td>
                     <td className="p-3 text-center">
-                      <div style={{ display: "flex", gap: "8px", justifyContent: "center" }}>
-                        <button
-                          onClick={() => router.push(`/dashboard/penatausahaan/belanja/pengeluaran/edit/${item.id}`)}
-                          className="btn btn-outline btn-sm"
-                          title="Edit"
-                        >
-                          <Pencil size={12} />
-                        </button>
-                        <button onClick={() => handleDelete(item.id)} className="btn btn-danger btn-sm" title="Hapus">
-                          <Trash size={12} />
-                        </button>
+                      <div style={{ display: "flex", gap: "6px", justifyContent: "center", alignItems: "center", flexWrap: "nowrap" }}>
+                        {/* Tombol Edit & Hapus (Hanya jika belum diverifikasi) */}
+                        {item.verif !== 1 && canCreate && (
+                          <>
+                            <button
+                              onClick={() => router.push(`/dashboard/penatausahaan/belanja/pengeluaran/edit/${item.id}`)}
+                              className="btn btn-outline btn-sm"
+                              title="Edit Pengeluaran"
+                            >
+                              <Pencil size={12} />
+                            </button>
+                            <button
+                              onClick={() => handleDelete(item.id)}
+                              className="btn btn-danger btn-sm"
+                              title="Hapus Pengeluaran"
+                            >
+                              <Trash size={12} />
+                            </button>
+                          </>
+                        )}
+
+                        {/* Tombol Verifikasi & Batalkan Verifikasi (Superadmin, KPA, Keuangan) */}
+                        {canVerify && (
+                          item.verif === 1 ? (
+                            <button
+                              onClick={() => handleVerifikasi(item.id, "batal_verifikasi")}
+                              className="btn btn-danger btn-sm"
+                              title="Batalkan Verifikasi"
+                              style={{ display: "inline-flex", alignItems: "center", gap: 4 }}
+                            >
+                              <XCircle size={12} /> Batal Verif
+                            </button>
+                          ) : (
+                            <button
+                              onClick={() => handleVerifikasi(item.id, "verifikasi")}
+                              className="btn btn-warning btn-sm"
+                              title="Verifikasi Pengeluaran"
+                              style={{ display: "inline-flex", alignItems: "center", gap: 4 }}
+                            >
+                              <ShieldCheck size={12} /> Verifikasi
+                            </button>
+                          )
+                        )}
                       </div>
                     </td>
                   </tr>
@@ -215,7 +331,27 @@ export default function PengeluaranPage() {
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px", marginTop: "16px", fontSize: "14px" }}>
               <div style={{ backgroundColor: "#F8FAFC", padding: "12px", borderRadius: "8px", border: "1px solid #E2E8F0", gridColumn: "span 2" }}>
                 <div style={{ color: "#64748B", fontSize: "12px", fontWeight: 600 }}>Nomor Pengeluaran</div>
-                <div style={{ color: "#0F172A", fontWeight: 500 }}>{detailItem.no_pengeluaran || "-"}</div>
+                <div style={{ color: "#0F172A", fontWeight: 700, fontSize: "15px" }}>{detailItem.no_pengeluaran || "-"}</div>
+              </div>
+              <div style={{ backgroundColor: "#F8FAFC", padding: "12px", borderRadius: "8px", border: "1px solid #E2E8F0" }}>
+                <div style={{ color: "#64748B", fontSize: "12px", fontWeight: 600 }}>Status Verifikasi</div>
+                <div style={{ marginTop: 4 }}>
+                  {detailItem.verif === 1 ? (
+                    <span className="badge badge-diverifikasi" style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
+                      <CheckCircle size={12} /> Terverifikasi
+                    </span>
+                  ) : (
+                    <span className="badge badge-draft" style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
+                      <FileText size={12} /> Draft
+                    </span>
+                  )}
+                </div>
+              </div>
+              <div style={{ backgroundColor: "#F8FAFC", padding: "12px", borderRadius: "8px", border: "1px solid #E2E8F0" }}>
+                <div style={{ color: "#64748B", fontSize: "12px", fontWeight: 600 }}>Verifikator</div>
+                <div style={{ color: "#0F172A", fontWeight: 500 }}>
+                  {detailItem.user_verif ? `${detailItem.user_verif} (${detailItem.tgl_verif ? new Date(detailItem.tgl_verif).toLocaleString("id-ID") : "-"})` : "Belum diverifikasi"}
+                </div>
               </div>
               <div style={{ backgroundColor: "#F8FAFC", padding: "12px", borderRadius: "8px", border: "1px solid #E2E8F0" }}>
                 <div style={{ color: "#64748B", fontSize: "12px", fontWeight: 600 }}>UKM</div>
@@ -252,3 +388,4 @@ export default function PengeluaranPage() {
     </div>
   );
 }
+

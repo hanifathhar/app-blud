@@ -48,7 +48,7 @@ export async function GET(req: NextRequest) {
       });
     }
 
-    const [total, list] = await prisma.$transaction([
+    const [total, list, aggAll, aggVerified, aggUnverified] = await prisma.$transaction([
       prisma.pengeluaran.count({ where: whereClause }),
       prisma.pengeluaran.findMany({
         where: whereClause,
@@ -61,11 +61,30 @@ export async function GET(req: NextRequest) {
         },
         skip,
         take: limit,
-      })
+      }),
+      prisma.pengeluaran.aggregate({
+        where: whereClause,
+        _sum: { nilai_pengeluaran: true },
+      }),
+      prisma.pengeluaran.aggregate({
+        where: { ...whereClause, verif: 1 },
+        _sum: { nilai_pengeluaran: true },
+        _count: { id: true },
+      }),
+      prisma.pengeluaran.aggregate({
+        where: { ...whereClause, verif: 0 },
+        _sum: { nilai_pengeluaran: true },
+        _count: { id: true },
+      }),
     ]);
 
     return NextResponse.json({ 
       data: list,
+      totalNilai: aggAll._sum.nilai_pengeluaran || 0,
+      totalVerified: aggVerified._sum.nilai_pengeluaran || 0,
+      countVerified: aggVerified._count.id || 0,
+      totalUnverified: aggUnverified._sum.nilai_pengeluaran || 0,
+      countUnverified: aggUnverified._count.id || 0,
       pagination: {
         total,
         page,

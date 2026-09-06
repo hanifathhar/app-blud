@@ -1192,12 +1192,20 @@ model Pengeluaran {
   sumdan                String? @db.VarChar(225)
   nm_sumdan             String? @db.VarChar(225)
 
+  verif                 Int       @default(0)
+  tgl_verif             DateTime?
+  user_verif            String?   @db.VarChar(100)
+
   tgl_dibuat            DateTime  @default(now())
   updated_at            DateTime  @updatedAt
 
   tagihan               Tagihan?  @relation(fields: [tagihan_id], references: [id])
   rincian               RincianPengeluaran[]
 
+  @@index([kd_upt])
+  @@index([tahun])
+  @@index([tgl_pengeluaran])
+  @@index([verif])
   @@map("tbl_pengeluaran")
 }
 
@@ -1233,3 +1241,25 @@ model RincianPengeluaran {
 
   @@map("tbl_rincian_pengeluaran")
 }
+
+/// Master Penandatangan Dokumen per UPT
+/// kode: 1=KPA, 2=PPTK, 3=Subag Keuangan, 4=Bendahara Penerimaan, 5=Bendahara Pengeluaran
+model Penandatangan {
+  id               Int      @id @default(autoincrement())
+  kd_upt           String   @db.VarChar(50)
+  nm_upt           String?  @db.VarChar(255)
+  kode             Int      @default(1) // 1=KPA, 2=PPTK, 3=Subag Keuangan, 4=Bendahara Penerimaan, 5=Bendahara Pengeluaran
+  jabatan          String   @db.VarChar(100) // Nama jabatan / keterangan jabatan
+  nama             String   @db.VarChar(150)
+  nip              String?  @db.VarChar(50)
+  pangkat_golongan String?  @db.VarChar(100)
+  status           Int      @default(1) // 1=Aktif, 0=Nonaktif
+  created_at       DateTime @default(now())
+  updated_at       DateTime @updatedAt
+
+  @@index([kd_upt])
+  @@index([kode])
+  @@index([status])
+  @@map("ms_penandatangan")
+}
+

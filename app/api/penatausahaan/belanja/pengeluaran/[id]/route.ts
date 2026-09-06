@@ -50,6 +50,10 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     const existing = await prisma.pengeluaran.findUnique({ where: { id: pengeluaranId } });
     if (!existing) return NextResponse.json({ error: "Data tidak ditemukan" }, { status: 404 });
 
+    if (existing.verif === 1) {
+      return NextResponse.json({ error: "Pengeluaran sudah diverifikasi, tidak dapat diedit." }, { status: 400 });
+    }
+
     const updated = await prisma.pengeluaran.update({
       where: { id: pengeluaranId },
       data: {
@@ -79,6 +83,10 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
     });
 
     if (!pengeluaran) return NextResponse.json({ error: "Data tidak ditemukan" }, { status: 404 });
+
+    if (pengeluaran.verif === 1) {
+      return NextResponse.json({ error: "Pengeluaran sudah diverifikasi, batalkan verifikasi terlebih dahulu sebelum menghapus." }, { status: 400 });
+    }
 
     await prisma.$transaction(async (tx) => {
       // Hapus rincian pengeluaran

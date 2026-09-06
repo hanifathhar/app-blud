@@ -29,6 +29,16 @@ export default function EditPengeluaranPage() {
       .then((d) => {
         const data = d.data;
         if (data) {
+          if (data.verif === 1) {
+            Swal.fire({
+              icon: "warning",
+              title: "Terkunci",
+              text: "Pengeluaran ini sudah diverifikasi dan tidak dapat diedit.",
+            }).then(() => {
+              router.push("/dashboard/penatausahaan/belanja/pengeluaran");
+            });
+            return;
+          }
           setPengeluaran(data);
           setForm({
             tgl_pengeluaran: data.tgl_pengeluaran
@@ -39,7 +49,7 @@ export default function EditPengeluaranPage() {
         }
       })
       .finally(() => setLoading(false));
-  }, [id]);
+  }, [id, router]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
