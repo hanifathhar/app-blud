@@ -8,6 +8,7 @@ export const KODE_JABATAN_MAP: Record<number, string> = {
   3: "Subag Keuangan",
   4: "Bendahara Penerimaan",
   5: "Bendahara Pengeluaran",
+  6: "Pengurus Barang Pengguna",
 };
 
 // GET all / filtered Penandatangan
@@ -134,8 +135,8 @@ export async function POST(req: NextRequest) {
     }
 
     const kodeNum = parseInt(kode || "1");
-    if (isNaN(kodeNum) || kodeNum < 1 || kodeNum > 5) {
-      return NextResponse.json({ error: "Kode penandatangan harus antara 1 sampai 5" }, { status: 400 });
+    if (isNaN(kodeNum) || kodeNum < 1 || kodeNum > 6) {
+      return NextResponse.json({ error: "Kode penandatangan harus antara 1 sampai 6" }, { status: 400 });
     }
 
     // Default nama jabatan jika tidak diisi

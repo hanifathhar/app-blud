@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Select from "react-select";
 import Swal from "sweetalert2";
-import { Info, CheckCircle2, Search } from "lucide-react";
+import { Info, CheckCircle2, Search, Printer } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -182,8 +182,19 @@ export default function PenerimaanForm({ initialData, isEdit = false }: Penerima
 
   return (
     <div className="card" style={{ width: "100%", marginBottom: "30px" }}>
-      <div className="card-header">
-        <span className="card-title">Tambah BAST</span>
+      <div className="card-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <span className="card-title">{isEdit ? "Edit BAST" : "Tambah BAST"}</span>
+        {isEdit && initialData?.id && (
+          <button
+            type="button"
+            onClick={() => router.push(`/dashboard/penatausahaan/belanja/penerimaan/cetak/${initialData.id}`)}
+            className="btn btn-outline btn-sm"
+            style={{ display: "inline-flex", alignItems: "center", gap: "6px", color: "#2563EB", borderColor: "#BFDBFE" }}
+            title="Cetak Berita Acara Penerimaan Barang"
+          >
+            <Printer size={14} /> Cetak Berita Acara (BAST)
+          </button>
+        )}
       </div>
 
       <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", padding: "24px", gap: "24px" }}>

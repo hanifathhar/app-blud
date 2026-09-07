@@ -13,29 +13,101 @@ export async function GET(req: Request) {
   const tahun = searchParams.get("tahun");
   const kd_upt = searchParams.get("kd_upt") || user.kd_upt;
 
+  const bulanNum = bulan ? parseInt(bulan) : null;
+  const tahunNum = tahun ? parseInt(tahun) : null;
+
   const where: Record<string, unknown> = {};
-  if (bulan) where.bulan = parseInt(bulan);
-  if (tahun) where.tahun = parseInt(tahun);
+  if (bulanNum) where.bulan = bulanNum;
+  if (tahunNum) where.tahun = tahunNum;
   if (user.role !== "superadmin") where.kd_upt = user.kd_upt;
   else if (kd_upt) where.kd_upt = kd_upt;
 
+  // Hitung Saldo Awal Bulan Lalu (akumulasi debet - kredit sebelum bulan ini pada tahun berjalan)
+  let saldoAwal = 0;
+  if (bulanNum && tahunNum) {
+    const prevWhere: any = {
+      tahun: tahunNum,
+      bulan: { lt: bulanNum },
+    };
+    if (user.role !== "superadmin") prevWhere.kd_upt = user.kd_upt;
+    else if (kd_upt) prevWhere.kd_upt = kd_upt;
+
+    const prevData = await prisma.bKU.findMany({
+      where: prevWhere,
+      select: { debet: true, kredit: true },
+    });
+
+    saldoAwal = prevData.reduce((acc, curr) => acc + (curr.debet || 0) - (curr.kredit || 0), 0);
+  }
+
   const data = await prisma.bKU.findMany({
     where,
+    include: {
+      tagihan: {
+        include: {
+          rincian: true,
+          pengeluaran: {
+            include: {
+              rincian: true,
+            },
+          },
+        },
+      },
+    },
     orderBy: [{ tgl_transaksi: "asc" }, { id: "asc" }],
   });
 
-  // Hitung saldo kumulatif
-  let saldo = 0;
+  // Fetch daftar nama rekening untuk kd_rek6 yang ada
+  const allKdRek = Array.from(new Set(data.map((d) => d.kd_rek6).filter(Boolean))) as string[];
+  let mapRek6: Record<string, string> = {};
+  if (allKdRek.length > 0) {
+    const listRek6 = await prisma.msRek6.findMany({
+      where: { kd_rek6: { in: allKdRek } },
+      select: { kd_rek6: true, nm_rek6: true },
+    });
+    listRek6.forEach((r) => {
+      if (r.kd_rek6) mapRek6[r.kd_rek6] = r.nm_rek6 || "";
+    });
+  }
+
+  // Hitung saldo kumulatif berjalan dimulai dari saldo awal
+  let runningSaldo = saldoAwal;
   const withSaldo = data.map((row) => {
-    saldo = saldo + (row.debet || 0) - (row.kredit || 0);
-    return { ...row, saldo };
+    runningSaldo = runningSaldo + (row.debet || 0) - (row.kredit || 0);
+
+    // Cari nama rekening belanja dari rincian tagihan / pengeluaran atau master msRek6
+    let nm_rek6 = "";
+    if (row.kd_rek6) {
+      nm_rek6 = mapRek6[row.kd_rek6] || "";
+      if (!nm_rek6 && row.tagihan?.rincian) {
+        const found = row.tagihan.rincian.find((r) => r.kd_rek6 === row.kd_rek6);
+        if (found) nm_rek6 = found.nm_rek6 || "";
+      }
+      if (!nm_rek6 && row.tagihan?.pengeluaran?.rincian) {
+        const found = row.tagihan.pengeluaran.rincian.find((r) => r.kd_rek6 === row.kd_rek6);
+        if (found) nm_rek6 = found.nm_rek6 || "";
+      }
+    }
+
+    return {
+      ...row,
+      nm_rek6,
+      saldo: runningSaldo,
+    };
   });
 
-  // Rekap
+  // Rekap bulan ini
   const totalDebet = data.reduce((s, r) => s + (r.debet || 0), 0);
   const totalKredit = data.reduce((s, r) => s + (r.kredit || 0), 0);
+  const saldoAkhir = runningSaldo;
 
-  return NextResponse.json({ data: withSaldo, totalDebet, totalKredit, saldoAkhir: saldo });
+  return NextResponse.json({
+    data: withSaldo,
+    saldoAwal,
+    totalDebet,
+    totalKredit,
+    saldoAkhir,
+  });
 }
 
 export async function POST(req: Request) {

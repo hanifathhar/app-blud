@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { Plus, Pencil, Trash } from "lucide-react";
+import { Plus, Pencil, Trash, Printer } from "lucide-react";
 import Select from "react-select";
 import Swal from "sweetalert2";
 
@@ -150,8 +150,13 @@ export default function PenerimaanBarangPage() {
                     </td>
                     <td className="p-3 text-center">
                       <div style={{ display: "flex", gap: "8px", justifyContent: "center" }}>
+                        <Link href={`/dashboard/penatausahaan/belanja/penerimaan/cetak/${item.id}`}>
+                          <button className="btn btn-outline btn-sm text-blue-600 hover:text-blue-700" title="Cetak Berita Acara (BAST)">
+                            <Printer size={12} />
+                          </button>
+                        </Link>
                         {(item.tagihan && item.tagihan.length > 0) || (item.pengadaan?.permintaan_belanja?.tagihan && item.pengadaan.permintaan_belanja.tagihan.length > 0) ? (
-                          <span style={{ fontSize: "12px", color: "#64748B", fontStyle: "italic" }}>Sudah ditagihkan</span>
+                          <span style={{ fontSize: "12px", color: "#64748B", fontStyle: "italic", alignSelf: "center" }}>Sudah ditagihkan</span>
                         ) : (
                           <>
                             <Link href={`/dashboard/penatausahaan/belanja/penerimaan/edit/${item.id}`}>

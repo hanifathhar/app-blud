@@ -31,6 +31,7 @@ const JABATAN_OPTIONS = [
   { kode: 3, label: "Subag Keuangan", short: "Subag Keuangan", color: "#F59E0B", bg: "#FFFBEB", border: "#FDE68A" },
   { kode: 4, label: "Bendahara Penerimaan", short: "Bendahara Penerimaan", color: "#8B5CF6", bg: "#F5F3FF", border: "#DDD6FE" },
   { kode: 5, label: "Bendahara Pengeluaran", short: "Bendahara Pengeluaran", color: "#EF4444", bg: "#FEF2F2", border: "#FECACA" },
+  { kode: 6, label: "Pengurus Barang Pengguna", short: "Pengurus Barang", color: "#06B6D4", bg: "#ECFEFF", border: "#A5F3FC" },
 ];
 
 export default function MasterPenandatangananPage() {
@@ -244,7 +245,7 @@ export default function MasterPenandatangananPage() {
             <div>
               <h1 style={{ fontSize: 22, fontWeight: 800, color: "#0F172A", margin: 0 }}>Master Penandatanganan</h1>
               <p style={{ fontSize: 13, color: "#64748B", marginTop: 2 }}>
-                Pengaturan Pejabat Penandatangan Dokumen (KPA, PPTK, Subag Keuangan, Bendahara Penerimaan, & Bendahara Pengeluaran) per UPT
+                Pengaturan Pejabat Penandatangan Dokumen (KPA, PPTK, Subag Keuangan, Bendahara Penerimaan, Bendahara Pengeluaran, & Pengurus Barang) per UPT
               </p>
             </div>
           </div>
