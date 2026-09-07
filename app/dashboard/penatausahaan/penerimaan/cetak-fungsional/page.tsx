@@ -12,6 +12,8 @@ function CetakFungsionalPageContent() {
   const searchParams = useSearchParams();
   const [data, setData] = useState<any[]>([]);
   const [uptInfo, setUptInfo] = useState<any>(null);
+  const [penandatanganKpa, setPenandatanganKpa] = useState<any>(null);
+  const [penandatanganBendahara, setPenandatanganBendahara] = useState<any>(null);
   const [meta, setMeta] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -23,7 +25,7 @@ function CetakFungsionalPageContent() {
         const kd_upt = searchParams.get("kd_upt");
         const b = searchParams.get("bulan");
         const t = searchParams.get("tahun");
-        
+
         if (kd_upt) query.append("kd_upt", kd_upt);
         if (b) query.append("bulan", b);
         if (t) query.append("tahun", t);
@@ -34,8 +36,10 @@ function CetakFungsionalPageContent() {
         if (res.ok) {
           setData(result.data || []);
           setUptInfo(result.upt);
+          setPenandatanganKpa(result.penandatanganKpa);
+          setPenandatanganBendahara(result.penandatanganBendahara);
           setMeta({ tahun: result.tahun, bulan: result.bulan });
-          
+
           setTimeout(() => {
             window.print();
           }, 1000);
@@ -56,7 +60,7 @@ function CetakFungsionalPageContent() {
 
   const months = ["JANUARI", "FEBRUARI", "MARET", "APRIL", "MEI", "JUNI", "JULI", "AGUSTUS", "SEPTEMBER", "OKTOBER", "NOVEMBER", "DESEMBER"];
   const bulanText = meta?.bulan ? months[parseInt(meta.bulan) - 1] : "";
-  const headerBulanText = parseInt(meta?.bulan || "1") > 1 
+  const headerBulanText = parseInt(meta?.bulan || "1") > 1
     ? `KEADAAN BULAN JANUARI S/d. BULAN ${bulanText}`
     : `KEADAAN BULAN JANUARI`;
 
@@ -78,9 +82,18 @@ function CetakFungsionalPageContent() {
   const totalLebihKurang = totalSdBulanIni - totalAnggaran;
   const totalPersentase = totalAnggaran > 0 ? (totalSdBulanIni / totalAnggaran) * 100 : 0;
 
+  const handleKembali = () => {
+    if (window.opener && window.history.length <= 1) {
+      window.close();
+    } else {
+      router.push("/dashboard/penatausahaan/penerimaan");
+    }
+  };
+
   return (
     <div style={{ backgroundColor: "white", color: "black", minHeight: "100vh", padding: "1rem" }}>
-      <style dangerouslySetInnerHTML={{ __html: `
+      <style dangerouslySetInnerHTML={{
+        __html: `
         @page { size: landscape; margin: 10mm; }
         body { background: white; margin: 0; font-family: 'Times New Roman', Times, serif; font-size: 11px; }
         * { box-sizing: border-box; }
@@ -91,15 +104,16 @@ function CetakFungsionalPageContent() {
         .text-center { text-align: center; }
         .font-bold { font-weight: bold; }
         @media print {
-          html, body { height: 100vh; overflow: visible; }
-          .no-print { display: none !important; }
+          html, body { height: 100vh; overflow: visible; background: white !important; }
+          header, nav, aside, .sidebar, .page-header, .no-print { display: none !important; }
+          .page-layout, .page-main, .page-content, main { margin: 0 !important; padding: 0 !important; background: transparent !important; }
         }
       `}} />
 
       {/* Control Buttons (No Print) */}
       <div className="no-print" style={{ marginBottom: "20px", display: "flex", gap: "10px" }}>
         <button onClick={() => window.print()} style={{ padding: "8px 16px", background: "#2563eb", color: "white", border: "none", borderRadius: "4px", cursor: "pointer" }}>Print Laporan</button>
-        <button onClick={() => router.back()} style={{ padding: "8px 16px", background: "#e2e8f0", color: "black", border: "none", borderRadius: "4px", cursor: "pointer" }}>Kembali</button>
+        <button onClick={handleKembali} style={{ padding: "8px 16px", background: "#e2e8f0", color: "black", border: "none", borderRadius: "4px", cursor: "pointer" }}>Kembali</button>
       </div>
 
       <div style={{ textAlign: "center", marginBottom: "2rem", fontWeight: "bold" }}>
@@ -113,19 +127,19 @@ function CetakFungsionalPageContent() {
         <table style={{ border: "none", width: "auto" }}>
           <tbody>
             <tr>
-              <td style={{ border: "none", padding: 0, width: "150px" }}>Nama SKPD</td>
+              <td style={{ border: "none", padding: 0, width: "160px" }}>Nama SKPD</td>
               <td style={{ border: "none", padding: 0, width: "10px" }}>:</td>
               <td style={{ border: "none", padding: 0, fontWeight: "bold" }}>{uptInfo?.kd_upt || ""} - {uptInfo?.nm_upt || "Semua UPT"}</td>
             </tr>
             <tr>
               <td style={{ border: "none", padding: 0 }}>Pengguna Anggaran/Barang</td>
               <td style={{ border: "none", padding: 0 }}>:</td>
-              <td style={{ border: "none", padding: 0 }}></td>
+              <td style={{ border: "none", padding: 0 }}>{penandatanganKpa ? `${penandatanganKpa.nama}` : "-"}</td>
             </tr>
             <tr>
               <td style={{ border: "none", padding: 0 }}>Bendahara Penerimaan</td>
               <td style={{ border: "none", padding: 0 }}>:</td>
-              <td style={{ border: "none", padding: 0 }}></td>
+              <td style={{ border: "none", padding: 0 }}>{penandatanganBendahara ? `${penandatanganBendahara.nama}` : "-"}</td>
             </tr>
           </tbody>
         </table>
@@ -162,7 +176,7 @@ function CetakFungsionalPageContent() {
             const isBold = row.level <= 4; // Bold up to level 4 as per image
             const lebihKurang = row.realisasiSdHariIni - row.anggaran;
             const persentase = row.anggaran > 0 ? (row.realisasiSdHariIni / row.anggaran) * 100 : 0;
-            
+
             return (
               <tr key={idx} style={{ fontWeight: isBold ? "bold" : "normal" }}>
                 <td>{row.kode}</td>
@@ -192,18 +206,32 @@ function CetakFungsionalPageContent() {
 
       <div style={{ marginTop: "40px", display: "flex", justifyContent: "space-between", pageBreakInside: "avoid" }}>
         <div style={{ textAlign: "center", width: "40%" }}>
-          <p>Mengetahui,</p>
-          <p style={{ fontWeight: "bold" }}>Plt. KEPALA UPT {uptInfo?.nm_upt?.toUpperCase() || ""}</p>
+          <p style={{ margin: "2px 0" }}>Mengetahui,</p>
+          <p style={{ fontWeight: "bold", margin: "2px 0" }}>{penandatanganKpa?.jabatan || `KEPALA UPT ${uptInfo?.nm_upt?.toUpperCase() || ""}`}</p>
           <br /><br /><br /><br />
-          <p style={{ fontWeight: "bold", textDecoration: "underline", marginBottom: 0 }}>(..........................................................)</p>
-          <p style={{ marginTop: "2px" }}>NIP. ........................................</p>
+          <p style={{ fontWeight: "bold", textDecoration: "underline", marginBottom: 0 }}>
+            {penandatanganKpa?.nama ? `( ${penandatanganKpa.nama} )` : "(..........................................................)"}
+          </p>
+          {penandatanganKpa?.pangkat_golongan && (
+            <p style={{ margin: "2px 0" }}>{penandatanganKpa.pangkat_golongan}</p>
+          )}
+          <p style={{ marginTop: "2px" }}>
+            {penandatanganKpa?.nip ? `NIP. ${penandatanganKpa.nip}` : "NIP. ........................................"}
+          </p>
         </div>
         <div style={{ textAlign: "center", width: "40%" }}>
-          <p>SIPROK, ........................ {meta?.tahun}</p>
-          <p style={{ fontWeight: "bold" }}>BENDAHARA PENERIMA PEMBANTU</p>
+          <p style={{ margin: "2px 0" }}>{uptInfo?.nm_upt ? uptInfo.nm_upt + ", " : "SIPROK, "}........................ {meta?.tahun}</p>
+          <p style={{ fontWeight: "bold", margin: "2px 0" }}>{penandatanganBendahara?.jabatan || "BENDAHARA PENERIMAAN"}</p>
           <br /><br /><br /><br />
-          <p style={{ fontWeight: "bold", textDecoration: "underline", marginBottom: 0 }}>(..........................................................)</p>
-          <p style={{ marginTop: "2px" }}>NIP. ........................................</p>
+          <p style={{ fontWeight: "bold", textDecoration: "underline", marginBottom: 0 }}>
+            {penandatanganBendahara?.nama ? `( ${penandatanganBendahara.nama} )` : "(..........................................................)"}
+          </p>
+          {penandatanganBendahara?.pangkat_golongan && (
+            <p style={{ margin: "2px 0" }}>{penandatanganBendahara.pangkat_golongan}</p>
+          )}
+          <p style={{ marginTop: "2px" }}>
+            {penandatanganBendahara?.nip ? `NIP. ${penandatanganBendahara.nip}` : "NIP. ........................................"}
+          </p>
         </div>
       </div>
     </div>

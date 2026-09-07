@@ -126,14 +126,34 @@ export async function GET(req: Request) {
 
     // 5. Get UPT Data for Header
     let uptInfo = null;
+    let penandatanganKpa = null;
+    let penandatanganBendahara = null;
     if (whereUpt) {
       uptInfo = await prisma.msUpt.findFirst({ where: { kd_upt: whereUpt } });
+      penandatanganKpa = await prisma.penandatangan.findFirst({
+        where: {
+          kd_upt: whereUpt,
+          kode: 1,
+          status: 1
+        },
+        orderBy: { id: "desc" }
+      });
+      penandatanganBendahara = await prisma.penandatangan.findFirst({
+        where: {
+          kd_upt: whereUpt,
+          kode: 4,
+          status: 1
+        },
+        orderBy: { id: "desc" }
+      });
     }
 
     return NextResponse.json({
       success: true,
       data: filteredTree,
       upt: uptInfo,
+      penandatanganKpa,
+      penandatanganBendahara,
       tahun,
       bulan
     });

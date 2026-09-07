@@ -2,15 +2,9 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { Plus, Pencil, Trash, Info, Eye, Lock } from "lucide-react";
+import { Plus, Pencil, Trash, Info, Lock, Printer } from "lucide-react";
 import Select from "react-select";
 import Swal from "sweetalert2";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
 
 function formatRupiah(val: number) {
   return new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(val);
@@ -25,7 +19,6 @@ export default function TagihanPage() {
   const [upts, setUpts] = useState<any[]>([]);
   const [filterUpt, setFilterUpt] = useState("");
   const [user, setUser] = useState<any>(null);
-  const [detailItem, setDetailItem] = useState<any>(null);
   const limit = 10;
 
   const loadData = () => {
@@ -138,9 +131,9 @@ export default function TagihanPage() {
             </thead>
             <tbody>
               {loading ? (
-                <tr><td colSpan={8} className="text-center p-6 text-gray-500"><div className="loading-spinner" style={{ margin: "0 auto" }} /></td></tr>
+                <tr><td colSpan={10} className="text-center p-6 text-gray-500"><div className="loading-spinner" style={{ margin: "0 auto" }} /></td></tr>
               ) : list.length === 0 ? (
-                <tr><td colSpan={8} className="text-center p-6 text-gray-500">Belum ada data tagihan</td></tr>
+                <tr><td colSpan={10} className="text-center p-6 text-gray-500">Belum ada data tagihan</td></tr>
               ) : (
                 list.map((item, idx) => (
                   <tr key={item.id}>
@@ -171,18 +164,16 @@ export default function TagihanPage() {
                     </td>
                     <td className="p-3 text-center">
                       <div style={{ display: "flex", gap: "8px", justifyContent: "center" }}>
-                        {item.status === "lunas" ? (
-                          /* Sudah dibukukan — hanya tampilkan View */
+                        <Link href={`/dashboard/penatausahaan/belanja/tagihan/cetak/${item.id}`}>
                           <button
-                            onClick={() => setDetailItem(item)}
                             className="btn btn-outline btn-sm"
-                            title="Lihat Detail (Terkunci - sudah dibukukan)"
-                            style={{ color: "#64748B" }}
+                            title="Cetak Kwitansi (Tanda Pembayaran)"
+                            style={{ color: "#2563EB" }}
                           >
-                            <Eye size={12} />
+                            <Printer size={12} />
                           </button>
-                        ) : (
-                          /* Belum dibukukan — tampilkan Edit & Hapus */
+                        </Link>
+                        {item.status !== "lunas" && (
                           <>
                             <Link href={`/dashboard/penatausahaan/belanja/tagihan/edit/${item.id}`}>
                               <button className="btn btn-outline btn-sm" title="Edit">
@@ -229,52 +220,6 @@ export default function TagihanPage() {
           </div>
         )}
       </div>
-
-      <Dialog open={!!detailItem} onOpenChange={(open) => { if (!open) setDetailItem(null); }}>
-        <DialogContent style={{ maxWidth: "700px", borderRadius: "12px" }}>
-          <DialogHeader>
-            <DialogTitle style={{ fontSize: "18px", fontWeight: 700 }}>
-              Informasi Rincian Belanja Tagihan
-            </DialogTitle>
-          </DialogHeader>
-          {detailItem && (
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px", marginTop: "16px", fontSize: "14px" }}>
-              <div style={{ backgroundColor: "#F8FAFC", padding: "12px", borderRadius: "8px", border: "1px solid #E2E8F0", gridColumn: "span 2" }}>
-                <div style={{ color: "#64748B", fontSize: "12px", fontWeight: 600 }}>Nomor Tagihan</div>
-                <div style={{ color: "#0F172A", fontWeight: 500 }}>{detailItem.no_tagihan || "-"}</div>
-              </div>
-              <div style={{ backgroundColor: "#F8FAFC", padding: "12px", borderRadius: "8px", border: "1px solid #E2E8F0" }}>
-                <div style={{ color: "#64748B", fontSize: "12px", fontWeight: 600 }}>UKM</div>
-                <div style={{ color: "#0F172A", fontWeight: 500 }}>{detailItem.kd_ukm || "-"} - {detailItem.nm_ukm || "-"}</div>
-              </div>
-              <div style={{ backgroundColor: "#F8FAFC", padding: "12px", borderRadius: "8px", border: "1px solid #E2E8F0" }}>
-                <div style={{ color: "#64748B", fontSize: "12px", fontWeight: 600 }}>Peruntukan</div>
-                <div style={{ color: "#0F172A", fontWeight: 500 }}>{detailItem.kd_peruntukan || "-"} - {detailItem.nm_peruntukan || "-"}</div>
-              </div>
-              <div style={{ backgroundColor: "#F8FAFC", padding: "12px", borderRadius: "8px", border: "1px solid #E2E8F0" }}>
-                <div style={{ color: "#64748B", fontSize: "12px", fontWeight: 600 }}>Komponen</div>
-                <div style={{ color: "#0F172A", fontWeight: 500 }}>{detailItem.kd_komponen || "-"} - {detailItem.nm_komponen || "-"}</div>
-              </div>
-              <div style={{ backgroundColor: "#F8FAFC", padding: "12px", borderRadius: "8px", border: "1px solid #E2E8F0" }}>
-                <div style={{ color: "#64748B", fontSize: "12px", fontWeight: 600 }}>Rincian</div>
-                <div style={{ color: "#0F172A", fontWeight: 500 }}>{detailItem.kd_rincian || "-"} - {detailItem.nm_rincian || "-"}</div>
-              </div>
-              <div style={{ backgroundColor: "#F8FAFC", padding: "12px", borderRadius: "8px", border: "1px solid #E2E8F0", gridColumn: "span 2" }}>
-                <div style={{ color: "#64748B", fontSize: "12px", fontWeight: 600 }}>Sub Kegiatan</div>
-                <div style={{ color: "#0F172A", fontWeight: 500 }}>{detailItem.kd_sub_kegiatan || "-"} - {detailItem.nm_sub_kegiatan || "-"}</div>
-              </div>
-              <div style={{ backgroundColor: "#F8FAFC", padding: "12px", borderRadius: "8px", border: "1px solid #E2E8F0", gridColumn: "span 2" }}>
-                <div style={{ color: "#64748B", fontSize: "12px", fontWeight: 600 }}>Kode SPM</div>
-                <div style={{ color: "#0F172A", fontWeight: 500 }}>{detailItem.kd_spm || "-"} - {detailItem.nm_spm || "-"}</div>
-              </div>
-              <div style={{ backgroundColor: "#F8FAFC", padding: "12px", borderRadius: "8px", border: "1px solid #E2E8F0", gridColumn: "span 2" }}>
-                <div style={{ color: "#64748B", fontSize: "12px", fontWeight: 600 }}>Rekening (Rek 6)</div>
-                <div style={{ color: "#0F172A", fontWeight: 500 }}>{detailItem.kd_rek6 || "-"} - {detailItem.nm_rek6 || "-"}</div>
-              </div>
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }

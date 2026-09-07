@@ -61,7 +61,7 @@ function CetakPenerimaanPageContent() {
   if (error) return <div style={{ padding: 40, textAlign: "center", color: "red" }}>{error}</div>;
   if (!data) return null;
 
-  const { data: listRaw, upt, params } = data;
+  const { data: listRaw, upt, params, penandatanganKpa, penandatanganBendahara } = data;
   let periodeText = "";
   if (params.mode === "bulan") {
     const months = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
@@ -80,13 +80,22 @@ function CetakPenerimaanPageContent() {
   const months = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
   const ttdDate = `${today.getDate()} ${months[today.getMonth()]} ${today.getFullYear()}`;
 
+  const handleKembali = () => {
+    if (window.opener && window.history.length <= 1) {
+      window.close();
+    } else {
+      router.push("/dashboard/penatausahaan/penerimaan");
+    }
+  };
+
   return (
     <div style={{ backgroundColor: "white", color: "black", padding: "2cm", fontFamily: "Arial, sans-serif", fontSize: "12px", maxWidth: "100%", margin: "0 auto" }}>
       <style>{`
         @media print {
           @page { size: landscape; margin: 1cm; }
-          body { -webkit-print-color-adjust: exact; print-color-adjust: exact; background: white; }
-          .no-print { display: none !important; }
+          header, nav, aside, .sidebar, .page-header, .no-print { display: none !important; }
+          .page-layout, .page-main, .page-content, main { margin: 0 !important; padding: 0 !important; background: transparent !important; }
+          body { -webkit-print-color-adjust: exact; print-color-adjust: exact; background: white !important; }
         }
         table { width: 100%; border-collapse: collapse; margin-top: 20px; margin-bottom: 20px; }
         th, td { border: 1px solid black; padding: 6px 8px; text-align: left; vertical-align: top; }
@@ -97,14 +106,14 @@ function CetakPenerimaanPageContent() {
         .header-title h2 { margin: 0 0 5px 0; font-size: 16px; font-weight: bold; }
         .header-title h3 { margin: 0; font-size: 14px; font-weight: normal; }
         .ttd-container { display: flex; justify-content: space-between; margin-top: 50px; padding: 0 50px; page-break-inside: avoid; }
-        .ttd-box { width: 250px; text-align: center; }
-        .ttd-space { height: 80px; }
+        .ttd-box { width: 280px; text-align: center; }
+        .ttd-space { height: 60px; }
       `}</style>
 
       {/* Control Buttons (No Print) */}
       <div className="no-print" style={{ marginBottom: 20, display: "flex", gap: 10 }}>
         <button onClick={() => window.print()} style={{ padding: "8px 16px", background: "#2563eb", color: "white", border: "none", borderRadius: 4, cursor: "pointer" }}>Print Laporan</button>
-        <button onClick={() => router.back()} style={{ padding: "8px 16px", background: "#e2e8f0", color: "black", border: "none", borderRadius: 4, cursor: "pointer" }}>Kembali</button>
+        <button onClick={handleKembali} style={{ padding: "8px 16px", background: "#e2e8f0", color: "black", border: "none", borderRadius: 4, cursor: "pointer" }}>Kembali</button>
       </div>
 
       <div className="header-title">
@@ -156,17 +165,31 @@ function CetakPenerimaanPageContent() {
       <div className="ttd-container">
         <div className="ttd-box">
           <p style={{ marginBottom: 5 }}>Mengetahui,</p>
-          <p style={{ fontWeight: "bold" }}>Kepala UPT / Pimpinan</p>
+          <p style={{ fontWeight: "bold" }}>{penandatanganKpa?.jabatan || "Kepala UPT / Pimpinan"}</p>
           <div className="ttd-space"></div>
-          <p style={{ fontWeight: "bold", textDecoration: "underline" }}>( ........................................ )</p>
-          <p>NIP. ...................................</p>
+          <p style={{ fontWeight: "bold", textDecoration: "underline" }}>
+            {penandatanganKpa?.nama ? `( ${penandatanganKpa.nama} )` : "( ........................................ )"}
+          </p>
+          {penandatanganKpa?.pangkat_golongan && (
+            <p style={{ margin: "2px 0" }}>{penandatanganKpa.pangkat_golongan}</p>
+          )}
+          <p style={{ margin: "2px 0" }}>
+            {penandatanganKpa?.nip ? `NIP. ${penandatanganKpa.nip}` : "NIP. ..................................."}
+          </p>
         </div>
         <div className="ttd-box">
-          <p style={{ marginBottom: 5 }}>..............., {ttdDate}</p>
-          <p style={{ fontWeight: "bold" }}>Bendahara Penerimaan</p>
+          <p style={{ marginBottom: 5 }}>{upt?.nm_upt ? upt.nm_upt + ", " : ""}{ttdDate}</p>
+          <p style={{ fontWeight: "bold" }}>{penandatanganBendahara?.jabatan || "Bendahara Penerimaan"}</p>
           <div className="ttd-space"></div>
-          <p style={{ fontWeight: "bold", textDecoration: "underline" }}>( ........................................ )</p>
-          <p>NIP. ...................................</p>
+          <p style={{ fontWeight: "bold", textDecoration: "underline" }}>
+            {penandatanganBendahara?.nama ? `( ${penandatanganBendahara.nama} )` : "( ........................................ )"}
+          </p>
+          {penandatanganBendahara?.pangkat_golongan && (
+            <p style={{ margin: "2px 0" }}>{penandatanganBendahara.pangkat_golongan}</p>
+          )}
+          <p style={{ margin: "2px 0" }}>
+            {penandatanganBendahara?.nip ? `NIP. ${penandatanganBendahara.nip}` : "NIP. ..................................."}
+          </p>
         </div>
       </div>
     </div>

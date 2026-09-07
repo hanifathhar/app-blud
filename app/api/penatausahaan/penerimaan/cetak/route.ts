@@ -62,19 +62,50 @@ export async function GET(req: Request) {
     });
 
     // Get UPT details for the header
-    let uptDetails = { kd_upt: kd_upt, nm_upt: "" };
+    let uptDetails: any = { kd_upt: kd_upt || "", nm_upt: "" };
     if (kd_upt) {
-      // Trying to get name from the first record, since tbl_penerimaan stores nmUnit
-      const firstRec = data.find((d: any) => d.nmUnit);
-      if (firstRec) {
-        uptDetails.nm_upt = firstRec.nmUnit || "";
+      const upt = await prisma.msUpt.findFirst({
+        where: { kd_upt }
+      });
+      if (upt) {
+        uptDetails = upt;
+      } else {
+        const firstRec = data.find((d: any) => d.nmUnit);
+        if (firstRec) {
+          uptDetails.nm_upt = firstRec.nmUnit || "";
+        }
       }
+    }
+
+    // Get Penandatangan
+    let penandatanganKpa = null;
+    let penandatanganBendahara = null;
+    if (kd_upt) {
+      penandatanganKpa = await prisma.penandatangan.findFirst({
+        where: {
+          kd_upt,
+          kode: 1,
+          status: 1
+        },
+        orderBy: { id: "desc" }
+      });
+
+      penandatanganBendahara = await prisma.penandatangan.findFirst({
+        where: {
+          kd_upt,
+          kode: 4,
+          status: 1
+        },
+        orderBy: { id: "desc" }
+      });
     }
 
     return NextResponse.json({
       success: true,
       data,
       upt: uptDetails,
+      penandatanganKpa,
+      penandatanganBendahara,
       params: { mode, tahun, bulan, tgl_awal, tgl_akhir }
     });
   } catch (error: any) {

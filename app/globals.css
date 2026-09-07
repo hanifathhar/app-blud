@@ -602,3 +602,39 @@ body {
   border-radius: 50%;
   animation: spin 0.7s linear infinite;
 }
+
+/* ============================================================
+   GLOBAL PRINT RULES
+   ============================================================ */
+@media print {
+  body {
+    background: white !important;
+    color: black !important;
+  }
+
+  /* Hide Application Layout Elements */
+  header,
+  nav,
+  aside,
+  .sidebar,
+  .page-header,
+  .no-print {
+    display: none !important;
+  }
+
+  /* Reset layout container dimensions */
+  .page-layout,
+  .page-main,
+  .page-content,
+  main {
+    margin: 0 !important;
+    padding: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    border: none !important;
+    display: block !important;
+  }
+}
+

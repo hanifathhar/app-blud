@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Select from "react-select";
 import Swal from "sweetalert2";
-import { Plus, Trash, Info, CheckCircle2, X, Edit, Search } from "lucide-react";
+import { Plus, Trash, Info, CheckCircle2, X, Edit, Search, Printer, ArrowLeft } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -210,8 +210,19 @@ export default function PengadaanForm({ initialData, isEdit = false }: Pengadaan
 
   return (
     <div className="card" style={{ width: "100%", marginBottom: "30px" }}>
-      <div className="card-header">
-        <span className="card-title">{isEdit ? "Edit Pengadaan" : "Tambah Pengadaan"}</span>
+      <div className="card-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+
+        {isEdit && initialData?.id && (
+          <button
+            type="button"
+            onClick={() => router.push(`/dashboard/penatausahaan/belanja/pengadaan/cetak/${initialData.id}`)}
+            className="btn btn-outline btn-sm"
+            style={{ display: "inline-flex", alignItems: "center", gap: "6px", color: "#2563EB", borderColor: "#BFDBFE" }}
+            title="Cetak Order Pembelian"
+          >
+            <Printer size={14} /> Cetak Order Pembelian (OP)
+          </button>
+        )}
       </div>
 
       <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", padding: "24px", gap: "24px" }}>
@@ -249,7 +260,7 @@ export default function PengadaanForm({ initialData, isEdit = false }: Pengadaan
                 placeholder="-- Pilih UPT Terlebih Dahulu --"
                 isClearable
                 menuPortalTarget={typeof document !== "undefined" ? document.body : null}
-                styles={{ 
+                styles={{
                   control: (base) => ({ ...base, borderColor: '#E2E8F0', borderRadius: '9px', minHeight: '40px' }),
                   menuPortal: (base) => ({ ...base, zIndex: 9999 })
                 }}
@@ -374,14 +385,14 @@ export default function PengadaanForm({ initialData, isEdit = false }: Pengadaan
               <div style={{ gridColumn: "1 / -1" }}>
                 <span style={{ fontSize: "14px", fontWeight: 700, color: "#1E293B" }}>Detail Permintaan</span>
               </div>
-              
+
               <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
                 <span style={{ fontSize: "12px", color: "#64748B", fontWeight: 600 }}>Sub Kegiatan</span>
                 <div style={{ fontSize: "14px", fontWeight: 500, color: "#1E293B" }}>
                   {form.kd_sub_kegiatan || "-"} {form.nm_sub_kegiatan ? `- ${form.nm_sub_kegiatan}` : ""}
                 </div>
               </div>
-              
+
               <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
                 <span style={{ fontSize: "12px", color: "#64748B", fontWeight: 600 }}>UKM</span>
                 <div style={{ fontSize: "14px", fontWeight: 500, color: "#1E293B" }}>
@@ -561,8 +572,16 @@ export default function PengadaanForm({ initialData, isEdit = false }: Pengadaan
             <CheckCircle2 size={14} style={{ color: "#10B981" }} />
             Pastikan data vendor dan kontrak sudah sesuai dengan dokumen fisik
           </div>
-          <div style={{ display: "flex", gap: "10px" }}>
-            <button type="button" onClick={() => router.back()} className="btn btn-ghost">Batal</button>
+          <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
+
+            <button
+              type="button"
+              onClick={() => router.push("/dashboard/penatausahaan/belanja/pengadaan")}
+              className="btn btn-ghost"
+              style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}
+            >
+              <ArrowLeft size={16} /> Kembali
+            </button>
             <button type="submit" disabled={submitting || rincian.length === 0} className="btn btn-primary">
               {submitting ? <span className="loading-spinner" /> : null}
               {submitting ? "Menyimpan..." : "Simpan Pengadaan"}

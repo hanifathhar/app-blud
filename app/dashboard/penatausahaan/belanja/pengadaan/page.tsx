@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { Plus, Pencil, Trash } from "lucide-react";
+import { Plus, Pencil, Trash, Printer } from "lucide-react";
 import Swal from "sweetalert2";
 import Select from "react-select";
 
@@ -152,6 +152,11 @@ export default function PengadaanPage() {
                     </td>
                     <td className="p-3 text-center">
                       <div style={{ display: "flex", gap: "8px", justifyContent: "center" }}>
+                        <Link href={`/dashboard/penatausahaan/belanja/pengadaan/edit/${item.id}`}>
+                          <button className="btn btn-outline btn-sm text-blue-600 hover:text-blue-700" title="Cetak / Detail Pengadaan">
+                            <Printer size={12} />
+                          </button>
+                        </Link>
                         {item.status === "proses" && (
                           <>
                             <Link href={`/dashboard/penatausahaan/belanja/pengadaan/edit/${item.id}`}>
