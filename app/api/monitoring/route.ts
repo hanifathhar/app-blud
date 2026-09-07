@@ -51,11 +51,31 @@ export async function GET(req: Request) {
         _sum: { nilai: true },
       });
 
-      // Realisasi tahun berjalan
-      const realisasi = await prisma.realisasiAnggaran.aggregate({
-        where: { kd_upt, tahun },
-        _sum: { realisasi: true },
+      // Realisasi pengeluaran tahun berjalan
+      const pengeluaranList = await prisma.pengeluaran.findMany({
+        where: {
+          kd_upt,
+          OR: [
+            { tahun: tahun.toString() },
+            {
+              tgl_pengeluaran: {
+                gte: new Date(tahun, 0, 1),
+                lt: new Date(tahun + 1, 0, 1),
+              },
+            },
+          ],
+        },
+        include: {
+          rincian: true,
+        },
       });
+
+      const totalRealisasi = pengeluaranList.reduce((acc, peng) => {
+        if (peng.rincian && peng.rincian.length > 0) {
+          return acc + peng.rincian.reduce((sum, r) => sum + (Number(r.total) || 0), 0);
+        }
+        return acc + (Number(peng.nilai_pengeluaran) || 0);
+      }, 0);
 
       // SPP pending (diajukan/diverifikasi)
       const sppPending = await prisma.sPP.count({
@@ -65,7 +85,6 @@ export async function GET(req: Request) {
       const totalPendapatan = Number(rbaPendapatan._sum.nilai || 0);
       const totalBelanja = Number(rbaBelanja._sum.nilai || 0);
       const totalPagu = totalBelanja; // Total pagu untuk perhitungan realisasi (asumsi belanja)
-      const totalRealisasi = realisasi._sum.realisasi || 0;
       const persentase = totalPagu > 0 ? (totalRealisasi / totalPagu) * 100 : 0;
 
       return {
