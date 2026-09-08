@@ -1263,3 +1263,60 @@ model Penandatangan {
   @@map("ms_penandatangan")
 }
 
+/// Laporan Pertanggungjawaban (LPJ / SPTJ) Pendapatan & Belanja
+model Lpj {
+  id                 Int       @id @default(autoincrement())
+  no_lpj             String    @unique @db.VarChar(100) // 00001/1.02.5.02.0.00.02.01/SPTJ/2026
+  tahun              String    @db.VarChar(4)
+  bulan              Int
+  kd_upt             String    @db.VarChar(50)
+  nm_upt             String?   @db.VarChar(255)
+  sumdan             String?   @db.VarChar(225) // Sumber Dana, misal: "Dana kapitasi JKN"
+  nm_sumdan          String?   @db.VarChar(225)
+  tgl_lpj            DateTime  @default(now())
+  
+  total_pendapatan   Decimal   @default(0.00) @db.Decimal(18,2)
+  total_belanja      Decimal   @default(0.00) @db.Decimal(18,2)
+  
+  status             String    @default("disahkan") // disahkan, dibatalkan
+  disahkan_oleh      String?   @db.VarChar(100)
+  tgl_disahkan       DateTime?
+  
+  keterangan         String?   @db.Text
+  created_at         DateTime  @default(now())
+  updated_at         DateTime  @updatedAt
+
+  rincian            RincianLpj[]
+
+  @@unique([kd_upt, tahun, bulan, sumdan])
+  @@index([kd_upt])
+  @@index([tahun])
+  @@index([bulan])
+  @@index([sumdan])
+  @@index([status])
+  @@map("tbl_lpj")
+}
+
+model RincianLpj {
+  id              Int       @id @default(autoincrement())
+  lpj_id          Int
+  jenis           String    @db.VarChar(20) // "pendapatan" atau "belanja"
+  
+  kd_sub_kegiatan String?   @db.VarChar(50)
+  nm_sub_kegiatan String?   @db.VarChar(225)
+  kd_rek6         String?   @db.VarChar(50)
+  nm_rek6         String?   @db.VarChar(225)
+  sumdan          String?   @db.VarChar(225)
+  nm_sumdan       String?   @db.VarChar(225)
+  
+  jumlah          Decimal   @default(0.00) @db.Decimal(18,2)
+  keterangan      String?   @db.Text
+  
+  lpj             Lpj       @relation(fields: [lpj_id], references: [id], onDelete: Cascade)
+
+  @@index([lpj_id])
+  @@index([jenis])
+  @@index([kd_rek6])
+  @@map("tbl_rincian_lpj")
+}
+
