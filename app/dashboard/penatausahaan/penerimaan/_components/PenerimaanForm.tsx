@@ -35,18 +35,18 @@ export default function PenerimaanForm({ initialData, isEdit = false }: Penerima
   const [subKegiatans, setSubKegiatans] = useState<any[]>([]);
   const [rek6s, setRek6s] = useState<any[]>([]);
   const [sumdans, setSumdans] = useState<any[]>([]);
+  const [loadingNoBukti, setLoadingNoBukti] = useState(false);
 
   useEffect(() => {
-    if (!isEdit && !form.noBukti) {
-      const generatedNo = `PNP-${Date.now().toString().slice(-6)}`;
-      setForm(prev => ({ ...prev, noBukti: generatedNo }));
-    }
-
     fetch("/api/me").then(r => r.json()).then(d => {
       if (d.user) {
         setUser(d.user);
         if (!isEdit && (d.user.role !== "superadmin")) {
-          setForm(prev => ({ ...prev, kdUnit: d.user.kd_upt }));
+          setForm(prev => ({ 
+            ...prev, 
+            kdUnit: d.user.kd_upt || prev.kdUnit,
+            nmUnit: d.user.nm_upt || prev.nmUnit,
+          }));
         }
       }
     });
@@ -61,6 +61,29 @@ export default function PenerimaanForm({ initialData, isEdit = false }: Penerima
     });
     fetch("/api/master/sumber-dana").then(r => r.json()).then(d => setSumdans(d.data || []));
   }, [isEdit]);
+
+  // Fetch next no_bukti based on kdUnit and tahun (for new data)
+  useEffect(() => {
+    if (isEdit) return;
+    const unit = form.kdUnit || user?.kd_upt || "";
+    const tahun = form.tahun || user?.tahun || new Date().getFullYear().toString();
+
+    if (!unit) {
+      setForm(prev => ({ ...prev, noBukti: "" }));
+      return;
+    }
+
+    setLoadingNoBukti(true);
+    fetch(`/api/penatausahaan/penerimaan/next-number?kd_upt=${unit}&tahun=${tahun}`)
+      .then(r => r.json())
+      .then(d => {
+        if (d.success && d.no_bukti) {
+          setForm(prev => ({ ...prev, noBukti: d.no_bukti }));
+        }
+      })
+      .catch(console.error)
+      .finally(() => setLoadingNoBukti(false));
+  }, [form.kdUnit, form.tahun, user?.kd_upt, isEdit]);
 
   // Fetch rek6 from active budget based on kdUnit and tahun
   useEffect(() => {
@@ -144,16 +167,19 @@ export default function PenerimaanForm({ initialData, isEdit = false }: Penerima
 
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
           <div>
-            <label className="form-label">Nomor Bukti</label>
+            <label className="form-label">
+              Nomor Bukti {!isEdit && <span style={{ fontSize: "11px", color: "#2563EB", fontWeight: 600 }}>(Otomatis per UPT & Tahun)</span>}
+            </label>
             <input
               required
               readOnly={!isEdit}
               type="text"
               className="form-input bg-gray-100"
-              value={form.noBukti}
+              value={loadingNoBukti ? "Memuat nomor..." : form.noBukti}
               onChange={(e) => setForm({ ...form, noBukti: e.target.value })}
-              placeholder="Otomatis"
-              title="Dibuat otomatis"
+              placeholder={loadingNoBukti ? "Memuat nomor..." : "(Akan dibuat otomatis saat disimpan)"}
+              title="Dibuat otomatis per UPT dan Tahun"
+              style={{ backgroundColor: !isEdit ? "#F8FAFC" : "#fff", fontWeight: 600, color: form.noBukti ? "#0F172A" : "#64748B" }}
             />
           </div>
           <div>

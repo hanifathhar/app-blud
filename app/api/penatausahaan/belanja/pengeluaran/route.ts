@@ -126,22 +126,46 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Tagihan sudah lunas / dibukukan" }, { status: 400 });
     }
 
+    // Tentukan kd_upt, nm_upt, dan tahun
+    let kd_upt = tagihan.kd_upt || auth.unit || "";
+    let nm_upt = tagihan.nm_upt || null;
+    if (kd_upt && !nm_upt) {
+      const upt = await prisma.msUpt.findFirst({ where: { kd_upt } });
+      if (upt) nm_upt = upt.nm_upt;
+    }
+    const tahun = tagihan.tahun || auth.tahun || new Date().getFullYear().toString();
+
     const result = await prisma.$transaction(async (tx) => {
-      // Generate nomor pengeluaran
-      const tahun = tagihan.tahun || new Date().getFullYear().toString();
+      // Generate nomor pengeluaran berurutan berdasarkan UPT dan Tahun
       const countPengeluaran = await tx.pengeluaran.count({
-        where: { tahun }
+        where: {
+          kd_upt: kd_upt,
+          tahun: tahun,
+        }
       });
-      const no_pengeluaran = `PENG/${tahun}/${String(countPengeluaran + 1).padStart(4, '0')}`;
+
+      let nextNo = countPengeluaran + 1;
+      let no_pengeluaran = `${String(nextNo).padStart(5, '0')}/${kd_upt}/PENG/${tahun}`;
+
+      // Loop pencegahan jika no_pengeluaran sudah ada (misal ada deletion/gap)
+      while (true) {
+        const existingNo = await tx.pengeluaran.findFirst({
+          where: { no_pengeluaran },
+          select: { id: true },
+        });
+        if (!existingNo) break;
+        nextNo += 1;
+        no_pengeluaran = `${String(nextNo).padStart(5, '0')}/${kd_upt}/PENG/${tahun}`;
+      }
 
       // Buat Pengeluaran
       const pengeluaran = await tx.pengeluaran.create({
         data: {
           tagihan_id: tagihanIdNum,
           no_pengeluaran,
-          tahun: tagihan.tahun,
-          kd_upt: tagihan.kd_upt,
-          nm_upt: tagihan.nm_upt,
+          tahun: tahun,
+          kd_upt: kd_upt,
+          nm_upt: nm_upt,
           tgl_pengeluaran: new Date(tgl_pengeluaran),
           nilai_pengeluaran: tagihan.nilai_tagihan,
           keterangan: keterangan || tagihan.keterangan,

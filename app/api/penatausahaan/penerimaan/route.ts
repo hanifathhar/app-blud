@@ -82,14 +82,44 @@ export async function POST(req: Request) {
     }
 
     const body = await req.json();
-    const kdUnit = user.role === "superadmin" ? body.kdUnit : user.kd_upt;
+    const kdUnit = user.role === "superadmin" ? (body.kdUnit || user.kd_upt) : user.kd_upt;
+    let nmUnit = body.nmUnit;
+    if (kdUnit && !nmUnit) {
+      const upt = await prisma.msUpt.findFirst({ where: { kd_upt: kdUnit } });
+      if (upt) nmUnit = upt.nm_upt;
+    }
+
+    const tahun = body.tahun || user.tahun || new Date().getFullYear().toString();
+
+    let noBukti = body.noBukti;
+    if (!noBukti || noBukti.startsWith("PNP-") || noBukti === "Otomatis") {
+      const countPenerimaan = await prisma.tblPenerimaan.count({
+        where: {
+          kdUnit: kdUnit,
+          tahun: tahun,
+        },
+      });
+
+      let nextNo = countPenerimaan + 1;
+      noBukti = `${String(nextNo).padStart(5, "0")}/${kdUnit}/PNP/${tahun}`;
+
+      while (true) {
+        const exists = await prisma.tblPenerimaan.findFirst({
+          where: { noBukti },
+          select: { idTerima: true },
+        });
+        if (!exists) break;
+        nextNo += 1;
+        noBukti = `${String(nextNo).padStart(5, "0")}/${kdUnit}/PNP/${tahun}`;
+      }
+    }
 
     const data = await prisma.tblPenerimaan.create({
       data: {
-        noBukti: body.noBukti,
+        noBukti: noBukti,
         tglBukti: body.tglBukti ? new Date(body.tglBukti) : null,
         kdUnit: kdUnit,
-        nmUnit: body.nmUnit,
+        nmUnit: nmUnit,
         kdSubKegiatan: body.kdSubKegiatan,
         nmSubKegiatan: body.nmSubKegiatan,
         kdRek6: body.kdRek6,
@@ -98,7 +128,7 @@ export async function POST(req: Request) {
         keterangan: body.keterangan,
         nmPenyetor: body.nmPenyetor,
         sumdan: body.sumdan || "",
-        tahun: body.tahun,
+        tahun: tahun,
         username: user.username,
         tglUpdate: new Date(),
         verif: 0,

@@ -33,6 +33,8 @@ export default function PengeluaranForm() {
   const [tagihanList, setTagihanList] = useState<any[]>([]);
   const [upts, setUpts] = useState<any[]>([]);
   const [selectedUpt, setSelectedUpt] = useState("");
+  const [autoNoPengeluaran, setAutoNoPengeluaran] = useState<string>("");
+  const [loadingNoPengeluaran, setLoadingNoPengeluaran] = useState<boolean>(false);
 
   useEffect(() => {
     fetch("/api/me").then(r => r.json()).then(d => {
@@ -40,6 +42,30 @@ export default function PengeluaranForm() {
     });
     fetch("/api/upt").then(r => r.json()).then(d => setUpts(d.data || []));
   }, []);
+
+  // Fetch next no_pengeluaran whenever UPT or Tagihan changes
+  useEffect(() => {
+    const targetKdUpt = selectedTagihan?.kd_upt || selectedUpt || user?.kd_upt;
+    const targetTahun = selectedTagihan?.tahun || user?.tahun || new Date().getFullYear().toString();
+
+    if (!targetKdUpt) {
+      setAutoNoPengeluaran("");
+      return;
+    }
+
+    setLoadingNoPengeluaran(true);
+    fetch(`/api/penatausahaan/belanja/pengeluaran/next-number?kd_upt=${targetKdUpt}&tahun=${targetTahun}`)
+      .then((r) => r.json())
+      .then((d) => {
+        if (d.success && d.no_pengeluaran) {
+          setAutoNoPengeluaran(d.no_pengeluaran);
+        } else {
+          setAutoNoPengeluaran("");
+        }
+      })
+      .catch(() => setAutoNoPengeluaran(""))
+      .finally(() => setLoadingNoPengeluaran(false));
+  }, [selectedTagihan, selectedUpt, user]);
 
   useEffect(() => {
     if (!user) return;
@@ -389,7 +415,19 @@ export default function PengeluaranForm() {
             <span style={{ fontSize: "16px", fontWeight: 700, color: "#1E293B" }}>Detail Pengeluaran</span>
           </div>
 
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "16px" }}>
+            <div>
+              <label className="form-label">
+                No. Pengeluaran <span style={{ fontSize: "11px", color: "#2563EB", fontWeight: 600 }}>(Otomatis per UPT & Tahun)</span>
+              </label>
+              <input
+                type="text"
+                className="form-input"
+                readOnly
+                value={loadingNoPengeluaran ? "Memuat nomor urut..." : (autoNoPengeluaran || "(Akan dibuat otomatis saat disimpan)")}
+                style={{ backgroundColor: "#F8FAFC", color: autoNoPengeluaran ? "#0F172A" : "#64748B", fontWeight: 600 }}
+              />
+            </div>
             <div>
               <label className="form-label">Tanggal Pengeluaran <span style={{ color: "#EF4444" }}>*</span></label>
               <input
