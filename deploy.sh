@@ -1,11 +1,11 @@
 #!/bin/bash
 
 echo "========================================="
-echo "🚀 Deploy SMART POS"
+echo "🚀 Deploy BLUD"
 echo "========================================="
 
 # Masuk ke folder project
-cd /home/hnf/smart-pos || exit 1
+cd /home/hnf/app-blud || exit 1
 
 echo "📥 Update project..."
 git pull origin main
@@ -32,12 +32,12 @@ echo "🔄 Restart PM2..."
 if pm2 describe smart-pos > /dev/null 2>&1; then
     pm2 restart smart-pos
 else
-    pm2 start npm --name smart-pos -- start
+    pm2 start ecosystem.config.js
 fi
 
 pm2 save
 
 echo ""
 echo "========================================="
-echo "✅ Deploy SMART POS selesai"
+echo "✅ Deploy selesai"
 echo "========================================="

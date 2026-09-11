@@ -1,9 +1,9 @@
 module.exports = {
   apps: [
     {
-      name: "smart-pos",
+      name: "app-blud",
 
-      cwd: "/home/hnf/smart-pos",
+      cwd: "/home/hnf/app-blud",
 
       script: "npm",
       args: "start",
@@ -18,7 +18,7 @@ module.exports = {
 
       env: {
         NODE_ENV: "production",
-        PORT: 3000,
+        PORT: 3004,
       },
 
       error_file: "/home/hnf/.pm2/logs/smart-pos-error.log",
