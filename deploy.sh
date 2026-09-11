@@ -29,8 +29,8 @@ fi
 
 echo "🔄 Restart PM2..."
 
-if pm2 describe smart-pos > /dev/null 2>&1; then
-    pm2 restart smart-pos
+if pm2 describe app-blud > /dev/null 2>&1; then
+    pm2 restart app-blud
 else
     pm2 start ecosystem.config.js
 fi
