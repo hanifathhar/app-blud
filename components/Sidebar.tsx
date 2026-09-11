@@ -102,9 +102,8 @@ const menus: MenuItem[] = [
     icon: <BarChart3 size={17} />,
     roles: ["superadmin", "kpa", "keuangan", "perencana"],
     children: [
-      { label: "Realisasi Anggaran", href: "/dashboard/pelaporan/realisasi", roles: ["superadmin", "kpa", "keuangan", "perencana"] },
-      { label: "LPJ (Lap. Pertanggungjawaban)", href: "/dashboard/pelaporan/lpj", roles: ["superadmin", "kpa", "keuangan"] },
-      { label: "Neraca", href: "/dashboard/pelaporan/neraca", roles: ["superadmin", "kpa", "keuangan"] },
+      { label: "Realisasi Belanja", href: "/dashboard/pelaporan/realisasi", roles: ["superadmin", "kpa", "keuangan", "perencana"] },
+      { label: "LPJ", href: "/dashboard/pelaporan/lpj", roles: ["superadmin", "kpa", "keuangan"] },
     ],
   },
   {
