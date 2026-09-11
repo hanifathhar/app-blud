@@ -22,6 +22,13 @@ export async function POST(req: Request) {
       return NextResponse.json({ success: false, message: "Forbidden" }, { status: 403 });
     }
 
+    if (existing.pengesahan === 1) {
+      return NextResponse.json({
+        success: false,
+        message: "Data penerimaan ini sudah disahkan dalam LPJ dan tidak dapat diubah status verifikasinya secara langsung. Batalkan pengesahan LPJ terlebih dahulu."
+      }, { status: 400 });
+    }
+
     let verifStatus = 0;
     if (action === "verifikasi") {
       verifStatus = 1;

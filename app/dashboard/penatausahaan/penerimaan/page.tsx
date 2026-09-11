@@ -20,7 +20,8 @@ export default function PenerimaanPage() {
   const [uptFilter, setUptFilter] = useState("");
   const [search, setSearch] = useState("");
   const [totalNilai, setTotalNilai] = useState(0);
-  const [totalUnverified, setTotalUnverified] = useState(0);
+  const [totalDisahkan, setTotalDisahkan] = useState(0);
+  const [totalBelumDisahkan, setTotalBelumDisahkan] = useState(0);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const limit = 10;
@@ -47,7 +48,8 @@ export default function PenerimaanPage() {
       .then((d) => {
         setList(d.data || []);
         setTotalNilai(d.totalNilai || 0);
-        setTotalUnverified(d.totalUnverified || 0);
+        setTotalDisahkan(d.totalDisahkan || 0);
+        setTotalBelumDisahkan(d.totalBelumDisahkan || 0);
         setTotalPages(d.pagination?.totalPages || 1);
       })
       .finally(() => setLoading(false));
@@ -91,37 +93,6 @@ export default function PenerimaanPage() {
     }
   };
 
-  const handleVerifikasi = async (id: number, action: "verifikasi" | "batal_verifikasi") => {
-    const textTitle = action === "verifikasi" ? "Verifikasi Penerimaan?" : "Batalkan Verifikasi?";
-    const textMsg = action === "verifikasi" ? "Data akan disahkan!" : "Data akan dikembalikan ke status draf!";
-    
-    const result = await Swal.fire({
-      title: textTitle,
-      text: textMsg,
-      icon: 'question',
-      showCancelButton: true,
-      confirmButtonColor: action === "verifikasi" ? '#10b981' : '#f59e0b',
-      cancelButtonColor: '#64748b',
-      confirmButtonText: 'Ya, Lanjutkan',
-      cancelButtonText: 'Batal'
-    });
-
-    if (!result.isConfirmed) return;
-
-    const res = await fetch(`/api/penatausahaan/penerimaan/verifikasi`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ idTerima: id, action }),
-    });
-    if (res.ok) {
-      Swal.fire('Berhasil!', 'Status berhasil diperbarui.', 'success');
-      loadData();
-    } else {
-      const err = await res.json();
-      Swal.fire('Gagal!', err.message || "Gagal memverifikasi data", 'error');
-    }
-  };
-
   const handleOpenPrint = () => {
     let url = `/dashboard/penatausahaan/penerimaan/cetak?mode=${printMode}`;
     if (user?.role === "superadmin" && printUpt) url += `&kd_upt=${printUpt}`;
@@ -149,7 +120,6 @@ export default function PenerimaanPage() {
   };
 
   const canCreate = user && ["superadmin", "bendahara"].includes(user.role);
-  const canVerify = user && ["superadmin", "keuangan"].includes(user.role);
 
   return (
     <div className="animate-fadein">
@@ -334,27 +304,23 @@ export default function PenerimaanPage() {
       </div>
 
       {/* Cards Total Penerimaan */}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "24px", marginBottom: "24px" }}>
-        {/* Card Terverifikasi */}
-        <div className="card" style={{ padding: "20px", display: "flex", alignItems: "center", justifyContent: "space-between", background: "linear-gradient(135deg, #10b981 0%, #059669 100%)", color: "white" }}>
-          <div>
-            <p style={{ fontSize: 14, fontWeight: 500, opacity: 0.9 }}>Total Penerimaan (Terverifikasi)</p>
-            <h2 style={{ fontSize: 28, fontWeight: 700, marginTop: 4 }}>{formatRupiah(totalNilai)}</h2>
-          </div>
-          <div style={{ background: "rgba(255,255,255,0.2)", padding: 12, borderRadius: 12 }}>
-            <CheckCircle size={32} />
-          </div>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: 16, marginBottom: 24 }}>
+        {/* Total Seluruh */}
+        <div style={{ background: "linear-gradient(135deg, #1E293B, #0F172A)", color: "#fff", padding: 20, borderRadius: 12, boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1)" }}>
+          <p style={{ fontSize: 13, fontWeight: 500, opacity: 0.8 }}>Total Seluruh Penerimaan</p>
+          <h2 style={{ fontSize: 24, fontWeight: 700, marginTop: 6 }}>{formatRupiah(totalNilai)}</h2>
         </div>
 
-        {/* Card Belum Diverifikasi */}
-        <div className="card" style={{ padding: "20px", display: "flex", alignItems: "center", justifyContent: "space-between", background: "linear-gradient(135deg, #f59e0b 0%, #d97706 100%)", color: "white" }}>
-          <div>
-            <p style={{ fontSize: 14, fontWeight: 500, opacity: 0.9 }}>Penerimaan Belum Diverifikasi</p>
-            <h2 style={{ fontSize: 28, fontWeight: 700, marginTop: 4 }}>{formatRupiah(totalUnverified)}</h2>
-          </div>
-          <div style={{ background: "rgba(255,255,255,0.2)", padding: 12, borderRadius: 12 }}>
-            <ShieldCheck size={32} />
-          </div>
+        {/* Disahkan LPJ */}
+        <div style={{ background: "linear-gradient(135deg, #059669, #10B981)", color: "#fff", padding: 20, borderRadius: 12, boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1)" }}>
+          <p style={{ fontSize: 13, fontWeight: 500, opacity: 0.85 }}>Penerimaan Disahkan LPJ</p>
+          <h2 style={{ fontSize: 24, fontWeight: 700, marginTop: 6 }}>{formatRupiah(totalDisahkan)}</h2>
+        </div>
+
+        {/* Belum LPJ */}
+        <div style={{ background: "linear-gradient(135deg, #2563EB, #3B82F6)", color: "#fff", padding: 20, borderRadius: 12, boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1)" }}>
+          <p style={{ fontSize: 13, fontWeight: 500, opacity: 0.85 }}>Belum LPJ (Dapat Diedit)</p>
+          <h2 style={{ fontSize: 24, fontWeight: 700, marginTop: 6 }}>{formatRupiah(totalBelumDisahkan)}</h2>
         </div>
       </div>
 
@@ -423,39 +389,32 @@ export default function PenerimaanPage() {
                     </td>
                     <td style={{ textAlign: "right", fontWeight: 700 }}>{formatRupiah(item.nilai || 0)}</td>
                     <td style={{ textAlign: "center" }}>
-                      {item.verif === 1 ? (
-                        <span className="badge badge-diverifikasi">
-                          <CheckCircle size={12} /> Terverifikasi
+                      {item.pengesahan === 1 ? (
+                        <span className="badge" style={{ backgroundColor: "#DCFCE7", color: "#166534", border: "1px solid #86EFAC", display: "inline-flex", alignItems: "center", gap: 4 }}>
+                          <ShieldCheck size={12} /> Disahkan LPJ
                         </span>
                       ) : (
-                        <span className="badge badge-draft">
-                          <FileText size={12} /> Draft
+                        <span className="badge badge-diverifikasi" style={{ backgroundColor: "#EFF6FF", color: "#1D4ED8", border: "1px solid #BFDBFE", display: "inline-flex", alignItems: "center", gap: 4 }}>
+                          <CheckCircle size={12} /> Belum LPJ
                         </span>
                       )}
                     </td>
                     <td className="p-3 text-center">
                       <div style={{ display: "flex", gap: "8px", justifyContent: "center" }}>
-                        {canCreate && item.verif !== 1 && (
-                          <>
-                            <Link href={`/dashboard/penatausahaan/penerimaan/edit/${item.idTerima}`}>
-                              <button className="btn btn-outline btn-sm" title="Edit">
-                                <Pencil size={12} />
+                        {item.pengesahan === 1 ? (
+                          <span style={{ fontSize: "11px", color: "#64748B", fontStyle: "italic" }}>Terkunci (LPJ)</span>
+                        ) : (
+                          canCreate && (
+                            <>
+                              <Link href={`/dashboard/penatausahaan/penerimaan/edit/${item.idTerima}`}>
+                                <button className="btn btn-outline btn-sm" title="Edit">
+                                  <Pencil size={12} />
+                                </button>
+                              </Link>
+                              <button onClick={() => handleDelete(item.idTerima)} className="btn btn-danger btn-sm" title="Hapus">
+                                <Trash size={12} />
                               </button>
-                            </Link>
-                            <button onClick={() => handleDelete(item.idTerima)} className="btn btn-danger btn-sm" title="Hapus">
-                              <Trash size={12} />
-                            </button>
-                          </>
-                        )}
-                        {canVerify && (
-                          item.verif === 1 ? (
-                            <button onClick={() => handleVerifikasi(item.idTerima, "batal_verifikasi")} className="btn btn-danger btn-sm" title="Batalkan Verifikasi">
-                              <XCircle size={12} />
-                            </button>
-                          ) : (
-                            <button onClick={() => handleVerifikasi(item.idTerima, "verifikasi")} className="btn btn-warning btn-sm" title="Verifikasi">
-                              <ShieldCheck size={12} /> Verifikasi
-                            </button>
+                            </>
                           )
                         )}
                       </div>

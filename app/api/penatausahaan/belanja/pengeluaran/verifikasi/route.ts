@@ -39,6 +39,13 @@ export async function POST(req: Request) {
       }
     }
 
+    if (existing.pengesahan === 1) {
+      return NextResponse.json({
+        success: false,
+        message: "Pengeluaran ini sudah disahkan dalam LPJ dan tidak dapat diubah status verifikasinya secara langsung. Batalkan pengesahan LPJ terlebih dahulu jika ingin mengubahnya."
+      }, { status: 400 });
+    }
+
     let verifStatus = 0;
     if (action === "verifikasi") {
       verifStatus = 1;

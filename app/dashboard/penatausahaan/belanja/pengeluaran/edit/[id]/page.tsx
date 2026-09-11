@@ -29,11 +29,11 @@ export default function EditPengeluaranPage() {
       .then((d) => {
         const data = d.data;
         if (data) {
-          if (data.verif === 1) {
+          if (data.pengesahan === 1) {
             Swal.fire({
               icon: "warning",
               title: "Terkunci",
-              text: "Pengeluaran ini sudah diverifikasi dan tidak dapat diedit.",
+              text: "Pengeluaran ini sudah disahkan dalam LPJ dan tidak dapat diedit. Batalkan pengesahan LPJ terlebih dahulu jika ingin mengedit.",
             }).then(() => {
               router.push("/dashboard/penatausahaan/belanja/pengeluaran");
             });

@@ -1196,6 +1196,8 @@ model Pengeluaran {
   tgl_verif             DateTime?
   user_verif            String?   @db.VarChar(100)
 
+  pengesahan            Int       @default(0)
+
   tgl_dibuat            DateTime  @default(now())
   updated_at            DateTime  @updatedAt
 
@@ -1206,6 +1208,7 @@ model Pengeluaran {
   @@index([tahun])
   @@index([tgl_pengeluaran])
   @@index([verif])
+  @@index([pengesahan])
   @@map("tbl_pengeluaran")
 }
 

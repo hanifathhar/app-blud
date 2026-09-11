@@ -50,8 +50,8 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     const existing = await prisma.pengeluaran.findUnique({ where: { id: pengeluaranId } });
     if (!existing) return NextResponse.json({ error: "Data tidak ditemukan" }, { status: 404 });
 
-    if (existing.verif === 1) {
-      return NextResponse.json({ error: "Pengeluaran sudah diverifikasi / disahkan dalam LPJ, tidak dapat diedit. Batalkan verifikasi / LPJ terlebih dahulu sebelum mengubah data." }, { status: 400 });
+    if (existing.pengesahan === 1) {
+      return NextResponse.json({ error: "Pengeluaran sudah disahkan dalam LPJ dan terkunci. Batalkan pengesahan LPJ terlebih dahulu sebelum mengubah data." }, { status: 400 });
     }
 
     const updated = await prisma.pengeluaran.update({
@@ -84,8 +84,8 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
 
     if (!pengeluaran) return NextResponse.json({ error: "Data tidak ditemukan" }, { status: 404 });
 
-    if (pengeluaran.verif === 1) {
-      return NextResponse.json({ error: "Pengeluaran sudah diverifikasi / disahkan dalam LPJ, batalkan verifikasi / LPJ terlebih dahulu sebelum menghapus." }, { status: 400 });
+    if (pengeluaran.pengesahan === 1) {
+      return NextResponse.json({ error: "Pengeluaran sudah disahkan dalam LPJ dan terkunci. Batalkan pengesahan LPJ terlebih dahulu sebelum menghapus data." }, { status: 400 });
     }
 
     await prisma.$transaction(async (tx) => {

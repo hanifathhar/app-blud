@@ -523,26 +523,51 @@ export async function POST(req: Request) {
         );
       }
 
-      // Kunci data penerimaan: pengesahan = 1
+      // Kunci data penerimaan sesuai UPT, bulan, dan sumber dana: pengesahan = 1, verif = 1
+      const wherePenerimaan: any = {
+        kdUnit: kd_upt,
+        tglBukti: { gte: startDate, lt: endDate },
+      };
+      if (activeSumdan) {
+        wherePenerimaan.sumdan = { contains: activeSumdan, mode: "insensitive" };
+      }
+
       await tx.tblPenerimaan.updateMany({
-        where: {
-          kdUnit: kd_upt,
-          tglBukti: { gte: startDate, lt: endDate },
-        },
+        where: wherePenerimaan,
         data: {
           pengesahan: 1,
+          verif: 1,
           userVerif: user.nama || user.username,
           tglVerif: new Date(),
         },
       });
 
-      // Kunci data pengeluaran: verif = 1
+      // Kunci data pengeluaran sesuai UPT, bulan, dan sumber dana: pengesahan = 1, verif = 1
+      const wherePengeluaran: any = {
+        kd_upt,
+        tgl_pengeluaran: { gte: startDate, lt: endDate },
+      };
+      if (activeSumdan) {
+        wherePengeluaran.OR = [
+          { sumdan: { contains: activeSumdan, mode: "insensitive" } },
+          { nm_sumdan: { contains: activeSumdan, mode: "insensitive" } },
+          {
+            rincian: {
+              some: {
+                OR: [
+                  { sumdan: { contains: activeSumdan, mode: "insensitive" } },
+                  { nm_sumdan: { contains: activeSumdan, mode: "insensitive" } },
+                ]
+              }
+            }
+          }
+        ];
+      }
+
       await tx.pengeluaran.updateMany({
-        where: {
-          kd_upt,
-          tgl_pengeluaran: { gte: startDate, lt: endDate },
-        },
+        where: wherePengeluaran,
         data: {
+          pengesahan: 1,
           verif: 1,
           user_verif: user.nama || user.username,
           tgl_verif: new Date(),
@@ -603,25 +628,48 @@ export async function DELETE(req: Request) {
         );
       }
 
-      // Buka kunci penerimaan
+      // Buka kunci penerimaan sesuai sumdan
+      const wherePenerimaan: any = {
+        kdUnit: kd_upt,
+        tglBukti: { gte: startDate, lt: endDate },
+      };
+      if (sumdan) {
+        wherePenerimaan.sumdan = { contains: sumdan, mode: "insensitive" };
+      }
+
       await tx.tblPenerimaan.updateMany({
-        where: {
-          kdUnit: kd_upt,
-          tglBukti: { gte: startDate, lt: endDate },
-        },
+        where: wherePenerimaan,
         data: {
           pengesahan: 0,
         },
       });
 
-      // Buka kunci pengeluaran
+      // Buka kunci pengeluaran sesuai sumdan
+      const wherePengeluaran: any = {
+        kd_upt,
+        tgl_pengeluaran: { gte: startDate, lt: endDate },
+      };
+      if (sumdan) {
+        wherePengeluaran.OR = [
+          { sumdan: { contains: sumdan, mode: "insensitive" } },
+          { nm_sumdan: { contains: sumdan, mode: "insensitive" } },
+          {
+            rincian: {
+              some: {
+                OR: [
+                  { sumdan: { contains: sumdan, mode: "insensitive" } },
+                  { nm_sumdan: { contains: sumdan, mode: "insensitive" } },
+                ]
+              }
+            }
+          }
+        ];
+      }
+
       await tx.pengeluaran.updateMany({
-        where: {
-          kd_upt,
-          tgl_pengeluaran: { gte: startDate, lt: endDate },
-        },
+        where: wherePengeluaran,
         data: {
-          verif: 0,
+          pengesahan: 0,
         },
       });
     });

@@ -41,8 +41,8 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
     if (user.role !== "superadmin" && user.kd_upt !== existing.kdUnit) {
       return NextResponse.json({ success: false, message: "Forbidden" }, { status: 403 });
     }
-    if (existing.verif === 1 || existing.pengesahan === 1) {
-      return NextResponse.json({ success: false, message: "Data penerimaan ini telah diverifikasi / disahkan dalam LPJ dan terkunci. Batalkan pengesahan LPJ terlebih dahulu jika ingin mengubah data." }, { status: 400 });
+    if (existing.pengesahan === 1) {
+      return NextResponse.json({ success: false, message: "Data penerimaan ini telah disahkan dalam LPJ dan terkunci. Batalkan pengesahan LPJ terlebih dahulu jika ingin mengubah data." }, { status: 400 });
     }
 
     const body = await req.json();
@@ -90,8 +90,8 @@ export async function DELETE(req: Request, { params }: { params: Promise<{ id: s
     if (user.role !== "superadmin" && user.kd_upt !== existing.kdUnit) {
       return NextResponse.json({ success: false, message: "Forbidden" }, { status: 403 });
     }
-    if (existing.verif === 1 || existing.pengesahan === 1) {
-      return NextResponse.json({ success: false, message: "Data penerimaan ini telah diverifikasi / disahkan dalam LPJ dan terkunci. Batalkan pengesahan LPJ terlebih dahulu jika ingin menghapus data." }, { status: 400 });
+    if (existing.pengesahan === 1) {
+      return NextResponse.json({ success: false, message: "Data penerimaan ini telah disahkan dalam LPJ dan terkunci. Batalkan pengesahan LPJ terlebih dahulu jika ingin menghapus data." }, { status: 400 });
     }
 
     await prisma.tblPenerimaan.delete({ where: { idTerima } });

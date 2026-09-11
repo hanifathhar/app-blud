@@ -43,16 +43,22 @@ export async function GET(req: Request) {
     });
 
     const totalNilaiAgg = await prisma.tblPenerimaan.aggregate({
-      where: { ...where, verif: 1 },
+      where,
       _sum: { nilai: true }
     });
     const totalNilai = totalNilaiAgg._sum.nilai || 0;
 
-    const totalUnverifiedAgg = await prisma.tblPenerimaan.aggregate({
-      where: { ...where, verif: 0 },
+    const totalDisahkanAgg = await prisma.tblPenerimaan.aggregate({
+      where: { ...where, pengesahan: 1 },
       _sum: { nilai: true }
     });
-    const totalUnverified = totalUnverifiedAgg._sum.nilai || 0;
+    const totalDisahkan = totalDisahkanAgg._sum.nilai || 0;
+
+    const totalBelumDisahkanAgg = await prisma.tblPenerimaan.aggregate({
+      where: { ...where, pengesahan: 0 },
+      _sum: { nilai: true }
+    });
+    const totalBelumDisahkan = totalBelumDisahkanAgg._sum.nilai || 0;
 
     return NextResponse.json({
       success: true,
@@ -64,7 +70,9 @@ export async function GET(req: Request) {
         totalPages: Math.ceil(total / limit),
       },
       totalNilai,
-      totalUnverified,
+      totalDisahkan,
+      totalBelumDisahkan,
+      totalUnverified: totalBelumDisahkan,
     });
   } catch (error: any) {
     return NextResponse.json({ success: false, message: error.message }, { status: 500 });
@@ -90,6 +98,38 @@ export async function POST(req: Request) {
     }
 
     const tahun = body.tahun || user.tahun || new Date().getFullYear().toString();
+    const tglBuktiDate = body.tglBukti ? new Date(body.tglBukti) : new Date();
+    const bulanNum = tglBuktiDate.getMonth() + 1;
+    const targetSumdan = (body.sumdan || "").trim();
+
+    // Validasi: Cek apakah pada bulan, tahun, UPT, dan sumber dana ini LPJ sudah disahkan
+    if (kdUnit) {
+      let checkLpjRows: any[] = [];
+      if (targetSumdan) {
+        checkLpjRows = await prisma.$queryRawUnsafe(
+          `SELECT id, no_lpj, sumdan FROM "tbl_lpj" WHERE "kd_upt" = $1 AND "tahun" = $2 AND "bulan" = $3 AND "status" = 'disahkan' AND ("sumdan" ILIKE $4 OR $4 ILIKE '%' || "sumdan" || '%') LIMIT 1`,
+          kdUnit,
+          tahun,
+          bulanNum,
+          `%${targetSumdan}%`
+        );
+      } else {
+        checkLpjRows = await prisma.$queryRawUnsafe(
+          `SELECT id, no_lpj, sumdan FROM "tbl_lpj" WHERE "kd_upt" = $1 AND "tahun" = $2 AND "bulan" = $3 AND "status" = 'disahkan' LIMIT 1`,
+          kdUnit,
+          tahun,
+          bulanNum
+        );
+      }
+
+      if (checkLpjRows && checkLpjRows.length > 0) {
+        const lpjInfo = checkLpjRows[0];
+        return NextResponse.json({
+          success: false,
+          message: `Tidak dapat menambah penerimaan! LPJ periode Bulan ${bulanNum} Tahun ${tahun} (${lpjInfo.sumdan || targetSumdan}) telah disahkan dengan No: ${lpjInfo.no_lpj}. Batalkan pengesahan LPJ terlebih dahulu jika ingin menambah transaksi pada periode ini.`
+        }, { status: 400 });
+      }
+    }
 
     let noBukti = body.noBukti;
     if (!noBukti || noBukti.startsWith("PNP-") || noBukti === "Otomatis") {
