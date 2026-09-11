@@ -5,8 +5,8 @@ module.exports = {
 
       cwd: "/home/hnf/app-blud",
 
-      script: "npm",
-      args: "start",
+      script: "./node_modules/next/dist/bin/next",
+      args: "start -p 3004",
 
       instances: 1,
       exec_mode: "fork",
@@ -21,8 +21,8 @@ module.exports = {
         PORT: 3004,
       },
 
-      error_file: "/home/hnf/.pm2/logs/smart-pos-error.log",
-      out_file: "/home/hnf/.pm2/logs/smart-pos-out.log",
+      error_file: "/home/hnf/.pm2/logs/app-blud-error.log",
+      out_file: "/home/hnf/.pm2/logs/app-blud-out.log",
       log_date_format: "YYYY-MM-DD HH:mm:ss",
     },
   ],
