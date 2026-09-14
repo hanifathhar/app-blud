@@ -42,10 +42,13 @@ export default function LoginPage() {
     setNotif(null);
     setLoading(true);
     try {
+      const selectedTahun = tahunList.find((t) => String(t.id) === tahunId);
+      const tahunValue = selectedTahun ? String(selectedTahun.tahun) : undefined;
+
       const res = await fetch("/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json", "x-api-key": process.env.NEXT_PUBLIC_API_KEY || "programming-123" },
-        body: JSON.stringify({ username, pasword }),
+        body: JSON.stringify({ username, pasword, tahun: tahunValue }),
         credentials: "include",
       });
       const data = await res.json();
@@ -61,7 +64,9 @@ export default function LoginPage() {
           }
         }
         setNotif({ type: "success", message: "Login berhasil! Mengarahkan ke dashboard..." });
-        setTimeout(() => router.push("/dashboard"), 1200);
+        setTimeout(() => {
+          window.location.href = "/dashboard";
+        }, 1000);
       }
     } catch {
       setNotif({ type: "error", message: "Gagal terhubung ke server." });

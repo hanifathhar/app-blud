@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
-const JWT_SECRET = process.env.JWT_SECRET || "rahasia-super-aman";
+const JWT_SECRET = process.env.JWT_SECRET || "rahasia-blud-keuangan";
 
 // Route yang tidak memerlukan autentikasi
 const publicRoutes = ["/login", "/unauthorized"];

@@ -93,11 +93,14 @@ export async function POST(req: Request) {
       token,
     });
 
+    const isHttps = req.headers.get("x-forwarded-proto") === "https" || req.url.startsWith("https://");
+    const isProd = process.env.NODE_ENV === "production";
+
     response.cookies.set({
       name: "token",
       value: token,
       httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
+      secure: isProd && isHttps,
       sameSite: "lax",
       path: "/",
       maxAge: 60 * 60 * 8, // 8 jam

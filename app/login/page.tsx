@@ -64,7 +64,9 @@ export default function LoginPage() {
           }
         }
         setNotif({ type: "success", message: "Login berhasil! Mengarahkan ke dashboard..." });
-        setTimeout(() => router.push("/dashboard"), 1200);
+        setTimeout(() => {
+          window.location.href = "/dashboard";
+        }, 1000);
       }
     } catch {
       setNotif({ type: "error", message: "Gagal terhubung ke server." });
