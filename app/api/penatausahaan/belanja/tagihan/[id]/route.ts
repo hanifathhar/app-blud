@@ -17,6 +17,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
       where: { id },
       include: {
         rincian: true,
+        potongan: true,
         penerimaan_barang: {
           include: {
             pengadaan: {
@@ -60,6 +61,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
       uraian,
       nilai_tagihan,
       nm_vendor,
+      potongan,
     } = body;
 
     const existing = await prisma.tagihan.findUnique({ where: { id } });
@@ -68,15 +70,36 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
       return NextResponse.json({ error: "Tagihan sudah dibukukan sebagai pengeluaran, tidak dapat diedit." }, { status: 400 });
     }
 
-    const updated = await prisma.tagihan.update({
-      where: { id },
-      data: {
-        no_tagihan,
-        tgl_tagihan: new Date(tgl_tagihan),
-        keterangan: uraian,
-        nm_vendor: nm_vendor || null,
-        nilai_tagihan: Number(nilai_tagihan || 0)
-      }
+    const updated = await prisma.$transaction(async (tx) => {
+      // Delete old potongan
+      await tx.potonganTagihan.deleteMany({
+        where: { tagihan_id: id }
+      });
+
+      return await tx.tagihan.update({
+        where: { id },
+        data: {
+          no_tagihan,
+          tgl_tagihan: new Date(tgl_tagihan),
+          keterangan: uraian,
+          nm_vendor: nm_vendor || null,
+          nilai_tagihan: Number(nilai_tagihan || 0),
+          potongan: Array.isArray(potongan) && potongan.length > 0 ? {
+            create: potongan
+              .filter((p: any) => p.kd_rek6 && Number(p.nilai) > 0)
+              .map((p: any) => ({
+                kd_rek6: p.kd_rek6,
+                nm_rek6: p.nm_rek6 || null,
+                nilai: Number(p.nilai || 0),
+                id_billing: p.id_billing || null,
+                keterangan: p.keterangan || null,
+              }))
+          } : undefined
+        },
+        include: {
+          potongan: true
+        }
+      });
     });
 
     return NextResponse.json({ message: "Data Tagihan berhasil diupdate", data: updated });

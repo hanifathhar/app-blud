@@ -1122,6 +1122,7 @@ model Tagihan {
   penerimaan_barang     PenerimaanBarang? @relation(fields: [penerimaan_barang_id], references: [id])
   permintaan_belanja    PermintaanBelanja? @relation(fields: [permintaan_belanja_id], references: [id])
   rincian               RincianTagihan[]
+  potongan              PotonganTagihan[]
   spp                   SPP[]
   bku                   BKU[]
   pengeluaran           Pengeluaran?
@@ -1160,6 +1161,22 @@ model RincianTagihan {
   tagihan               Tagihan @relation(fields: [tagihan_id], references: [id], onDelete: Cascade)
 
   @@map("tbl_rincian_tagihan")
+}
+
+model PotonganTagihan {
+  id          Int       @id @default(autoincrement())
+  tagihan_id  Int
+  kd_rek6     String?   @db.VarChar(50)
+  nm_rek6     String?   @db.VarChar(255)
+  nilai       Float     @default(0)
+  id_billing  String?   @db.VarChar(100)
+  keterangan  String?   @db.Text
+  tgl_dibuat  DateTime  @default(now())
+  updated_at  DateTime  @updatedAt
+
+  tagihan     Tagihan   @relation(fields: [tagihan_id], references: [id], onDelete: Cascade)
+
+  @@map("tbl_potongan_tagihan")
 }
 
 model Pengeluaran {

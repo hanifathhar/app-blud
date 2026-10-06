@@ -61,6 +61,7 @@ export async function GET(req: NextRequest) {
           penerimaan_barang: { include: { pengadaan: true } },
           permintaan_belanja: true,
           rincian: true,
+          potongan: true,
         },
         orderBy: {
           tgl_dibuat: "desc",
@@ -101,6 +102,7 @@ export async function POST(req: NextRequest) {
       mekanisme,
       sumdan,
       tahun,
+      potongan,
     } = body;
 
     const kd_upt = auth.unit;
@@ -211,6 +213,18 @@ export async function POST(req: NextRequest) {
               sumdan: r.sumdan,
               nm_sumdan: r.nm_sumdan,
             }))
+          } : undefined,
+
+          potongan: Array.isArray(potongan) && potongan.length > 0 ? {
+            create: potongan
+              .filter((p: any) => p.kd_rek6 && Number(p.nilai) > 0)
+              .map((p: any) => ({
+                kd_rek6: p.kd_rek6,
+                nm_rek6: p.nm_rek6 || null,
+                nilai: Number(p.nilai || 0),
+                id_billing: p.id_billing || null,
+                keterangan: p.keterangan || null,
+              }))
           } : undefined
         }
       });

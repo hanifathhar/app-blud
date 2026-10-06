@@ -15,6 +15,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
       where: { id },
       include: {
         rincian: true,
+        potongan: true,
         penerimaan_barang: {
           include: {
             pengadaan: {

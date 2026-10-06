@@ -298,7 +298,7 @@ export default function CetakKwitansiPage() {
         </div>
 
         {/* Yaitu untuk */}
-        <div style={{ display: "flex", alignItems: "flex-start", gap: "12px", marginBottom: "26px", marginTop: "10px" }}>
+        <div style={{ display: "flex", alignItems: "flex-start", gap: "12px", marginBottom: "16px", marginTop: "10px" }}>
           <div style={{ fontWeight: "bold", minWidth: "110px", fontSize: "11pt" }}>
             Yaitu untuk :
           </div>
@@ -306,6 +306,49 @@ export default function CetakKwitansiPage() {
             {data.keterangan || "-"}
           </div>
         </div>
+
+        {/* Tabel Potongan / Pajak (Jika ada) */}
+        {data.potongan && data.potongan.length > 0 && (
+          <div style={{ marginBottom: "20px", marginTop: "10px" }}>
+            <div style={{ fontWeight: "bold", fontSize: "10.5pt", marginBottom: "6px" }}>
+              POTONGAN / PAJAK :
+            </div>
+            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "9.5pt", border: "1px solid #000" }}>
+              <thead>
+                <tr style={{ backgroundColor: "#f3f4f6", borderBottom: "1px solid #000" }}>
+                  <th style={{ padding: "4px 8px", borderRight: "1px solid #000", textAlign: "left" }}>Kode Rekening</th>
+                  <th style={{ padding: "4px 8px", borderRight: "1px solid #000", textAlign: "left" }}>Uraian Potongan</th>
+                  <th style={{ padding: "4px 8px", borderRight: "1px solid #000", textAlign: "left" }}>ID Billing</th>
+                  <th style={{ padding: "4px 8px", textAlign: "right", width: "140px" }}>Jumlah (Rp)</th>
+                </tr>
+              </thead>
+              <tbody>
+                {data.potongan.map((p: any, idx: number) => (
+                  <tr key={idx} style={{ borderBottom: "1px solid #000" }}>
+                    <td style={{ padding: "4px 8px", borderRight: "1px solid #000" }}>{p.kd_rek6 || "-"}</td>
+                    <td style={{ padding: "4px 8px", borderRight: "1px solid #000" }}>{p.nm_rek6 || p.keterangan || "-"}</td>
+                    <td style={{ padding: "4px 8px", borderRight: "1px solid #000" }}>{p.id_billing || "-"}</td>
+                    <td style={{ padding: "4px 8px", textAlign: "right" }}>{formatCurrencyRupiah(p.nilai || 0)}</td>
+                  </tr>
+                ))}
+              </tbody>
+              <tfoot>
+                <tr style={{ fontWeight: "bold", backgroundColor: "#f9fafb" }}>
+                  <td colSpan={3} style={{ padding: "4px 8px", textAlign: "right", borderRight: "1px solid #000" }}>Total Potongan :</td>
+                  <td style={{ padding: "4px 8px", textAlign: "right" }}>
+                    {formatCurrencyRupiah(data.potongan.reduce((sum: number, p: any) => sum + (Number(p.nilai) || 0), 0))}
+                  </td>
+                </tr>
+                <tr style={{ fontWeight: "bold" }}>
+                  <td colSpan={3} style={{ padding: "4px 8px", textAlign: "right", borderRight: "1px solid #000" }}>Jumlah Dibayarkan (Netto) :</td>
+                  <td style={{ padding: "4px 8px", textAlign: "right" }}>
+                    {formatCurrencyRupiah(Math.max(0, nilaiTotal - data.potongan.reduce((sum: number, p: any) => sum + (Number(p.nilai) || 0), 0)))}
+                  </td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+        )}
 
         {/* Garis Pembatas Tebal */}
         <div style={{ borderBottom: "3.5px solid #000", marginBottom: "28px" }} />

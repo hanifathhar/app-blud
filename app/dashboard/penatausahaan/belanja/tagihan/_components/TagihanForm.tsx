@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Select from "react-select";
 import Swal from "sweetalert2";
-import { Info, CheckCircle2, Search } from "lucide-react";
+import { Info, CheckCircle2, Search, Plus, Trash2, Edit, X } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -15,6 +15,15 @@ import {
 interface TagihanFormProps {
   initialData?: any;
   isEdit?: boolean;
+}
+
+interface PotonganItem {
+  id?: number;
+  kd_rek6: string;
+  nm_rek6: string;
+  nilai: number;
+  id_billing?: string;
+  keterangan?: string;
 }
 
 export default function TagihanForm({ initialData, isEdit = false }: TagihanFormProps) {
@@ -40,6 +49,31 @@ export default function TagihanForm({ initialData, isEdit = false }: TagihanForm
     tgl_bast: initialData?.penerimaan_barang?.tgl_bast || "",
   });
 
+  const [isPotonganDialogOpen, setIsPotonganDialogOpen] = useState(false);
+  const [editingPotonganIndex, setEditingPotonganIndex] = useState<number | null>(null);
+  const [searchPotonganQuery, setSearchPotonganQuery] = useState("");
+  const [potonganDialogForm, setPotonganDialogForm] = useState<PotonganItem>({
+    kd_rek6: "",
+    nm_rek6: "",
+    nilai: 0,
+    id_billing: "",
+    keterangan: "",
+  });
+
+  const [potonganList, setPotonganList] = useState<PotonganItem[]>(
+    initialData?.potongan && initialData.potongan.length > 0
+      ? initialData.potongan.map((p: any) => ({
+        id: p.id,
+        kd_rek6: p.kd_rek6 || "",
+        nm_rek6: p.nm_rek6 || "",
+        nilai: Number(p.nilai || 0),
+        id_billing: p.id_billing || "",
+        keterangan: p.keterangan || "",
+      }))
+      : []
+  );
+
+  const [rekeningPotonganOptions, setRekeningPotonganOptions] = useState<{ value: string; label: string; name: string }[]>([]);
   const [penerimaanList, setPenerimaanList] = useState<any[]>([]);
   const [upts, setUpts] = useState<any[]>([]);
   const [selectedUpt, setSelectedUpt] = useState("");
@@ -49,6 +83,21 @@ export default function TagihanForm({ initialData, isEdit = false }: TagihanForm
       if (d.user) setUser(d.user);
     });
     fetch("/api/upt").then(r => r.json()).then(d => setUpts(d.data || []));
+
+    // Ambil seluruh daftar rekening potongan / utang pajak (akun kepala 2)
+    fetch("/api/master/rek6?startsWith=2&limit=5000")
+      .then(r => r.json())
+      .then(d => {
+        if (d.data && Array.isArray(d.data)) {
+          const opts = d.data.map((r: any) => ({
+            value: r.kd_rek6,
+            label: `${r.kd_rek6} - ${r.nm_rek6}`,
+            name: r.nm_rek6,
+          }));
+          setRekeningPotonganOptions(opts);
+        }
+      })
+      .catch(err => console.error("Error loading rekening potongan:", err));
   }, []);
 
   useEffect(() => {
@@ -137,6 +186,53 @@ export default function TagihanForm({ initialData, isEdit = false }: TagihanForm
     }
   };
 
+  const handleOpenAddPotongan = () => {
+    setEditingPotonganIndex(null);
+    setSearchPotonganQuery("");
+    setPotonganDialogForm({
+      kd_rek6: "",
+      nm_rek6: "",
+      nilai: 0,
+      id_billing: "",
+      keterangan: "",
+    });
+    setIsPotonganDialogOpen(true);
+  };
+
+  const handleOpenEditPotongan = (index: number) => {
+    setEditingPotonganIndex(index);
+    setSearchPotonganQuery("");
+    setPotonganDialogForm({ ...potonganList[index] });
+    setIsPotonganDialogOpen(true);
+  };
+
+  const handleSavePotonganDialog = () => {
+    if (!potonganDialogForm.kd_rek6) {
+      Swal.fire({ icon: "warning", title: "Pilih Rekening", text: "Silakan pilih rekening potongan/pajak terlebih dahulu." });
+      return;
+    }
+    if (!potonganDialogForm.nilai || Number(potonganDialogForm.nilai) <= 0) {
+      Swal.fire({ icon: "warning", title: "Nominal Belum Diisi", text: "Silakan masukkan nilai/nominal potongan yang valid." });
+      return;
+    }
+
+    if (editingPotonganIndex !== null) {
+      const updated = [...potonganList];
+      updated[editingPotonganIndex] = { ...potonganDialogForm };
+      setPotonganList(updated);
+    } else {
+      setPotonganList([...potonganList, { ...potonganDialogForm }]);
+    }
+    setIsPotonganDialogOpen(false);
+  };
+
+  const handleRemovePotongan = (index: number) => {
+    setPotonganList(potonganList.filter((_, i) => i !== index));
+  };
+
+  const totalPotongan = potonganList.reduce((sum, p) => sum + (Number(p.nilai) || 0), 0);
+  const totalNetto = Math.max(0, Number(form.nilai_tagihan || 0) - totalPotongan);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSubmitting(true);
@@ -144,7 +240,20 @@ export default function TagihanForm({ initialData, isEdit = false }: TagihanForm
     const url = isEdit ? `/api/penatausahaan/belanja/tagihan/${initialData?.id}` : "/api/penatausahaan/belanja/tagihan";
     const method = isEdit ? "PUT" : "POST";
 
-    const payload = { ...form };
+    const cleanPotongan = potonganList
+      .filter(p => p.kd_rek6 && Number(p.nilai) > 0)
+      .map(p => ({
+        kd_rek6: p.kd_rek6,
+        nm_rek6: p.nm_rek6 || "",
+        nilai: Number(p.nilai || 0),
+        id_billing: p.id_billing || "",
+        keterangan: p.keterangan || ""
+      }));
+
+    const payload = {
+      ...form,
+      potongan: cleanPotongan
+    };
 
     try {
       const res = await fetch(url, {
@@ -500,6 +609,225 @@ export default function TagihanForm({ initialData, isEdit = false }: TagihanForm
             </div>
           </div>
         )}
+
+        {/* Section: Potongan / Pajak (Opsional) */}
+        <div style={{ backgroundColor: "#fff", borderRadius: "10px", padding: "20px", border: "1px solid #E2E8F0" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
+            <div>
+              <h3 style={{ fontSize: "16px", fontWeight: 700, color: "#1E293B", margin: 0 }}>
+                Potongan / Pajak <span style={{ fontSize: "12px", color: "#64748B", fontWeight: "normal" }}>(Opsional)</span>
+              </h3>
+            </div>
+            <button
+              type="button"
+              onClick={handleOpenAddPotongan}
+              className="btn btn-primary btn-sm"
+              style={{ display: "flex", alignItems: "center", gap: "6px", backgroundColor: "#2563EB", color: "#fff", padding: "8px 16px", borderRadius: "8px", fontWeight: 600 }}
+            >
+              <Plus size={16} /> Tambah Potongan
+            </button>
+          </div>
+
+          {potonganList.length === 0 ? (
+            <div style={{ padding: "28px", textAlign: "center", backgroundColor: "#F8FAFC", borderRadius: "8px", border: "1px dashed #CBD5E1" }}>
+              <span style={{ fontSize: "13.5px", color: "#64748B" }}>
+                Belum ada potongan/pajak yang ditambahkan. Klik tombol <strong>"+ Tambah Potongan"</strong> untuk membuka formulir dialog jika terdapat potongan atau pajak (PPh 21/22/23, PPN, dll).
+              </span>
+            </div>
+          ) : (
+            <div className="tbl-wrap">
+              <table className="tbl" style={{ width: "100%", fontSize: "13.5px" }}>
+                <thead>
+                  <tr style={{ backgroundColor: "#F8FAFC" }}>
+                    <th style={{ width: 40, textAlign: "center" }}>No</th>
+                    <th>Akun Rekening Potongan / Pajak</th>
+                    <th style={{ width: 140 }}>ID Billing</th>
+                    <th style={{ width: 180, textAlign: "right" }}>Nominal Potongan (Rp)</th>
+                    <th>Keterangan</th>
+                    <th style={{ width: 120, textAlign: "center" }}>Aksi</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {potonganList.map((item, idx) => (
+                    <tr key={idx} style={{ borderBottom: "1px solid #F1F5F9" }}>
+                      <td style={{ textAlign: "center", verticalAlign: "middle", color: "#64748B" }}>{idx + 1}</td>
+                      <td style={{ verticalAlign: "middle" }}>
+                        <div style={{ fontWeight: 600, color: "#1E293B" }}>{item.kd_rek6}</div>
+                        <div style={{ fontSize: "12px", color: "#64748B" }}>{item.nm_rek6 || "-"}</div>
+                      </td>
+                      <td style={{ verticalAlign: "middle", color: "#334155" }}>
+                        {item.id_billing ? <span style={{ backgroundColor: "#F1F5F9", padding: "2px 6px", borderRadius: "4px", fontSize: "12px", fontFamily: "monospace" }}>{item.id_billing}</span> : "-"}
+                      </td>
+                      <td style={{ verticalAlign: "middle", textAlign: "right", fontWeight: 600, color: "#DC2626" }}>
+                        Rp {new Intl.NumberFormat("id-ID").format(item.nilai || 0)}
+                      </td>
+                      <td style={{ verticalAlign: "middle", color: "#475569" }}>{item.keterangan || "-"}</td>
+                      <td style={{ verticalAlign: "middle", textAlign: "center" }}>
+                        <div style={{ display: "flex", justifyContent: "center", gap: "6px" }}>
+                          <button
+                            type="button"
+                            onClick={() => handleOpenEditPotongan(idx)}
+                            className="btn btn-ghost btn-sm"
+                            style={{ padding: "4px 8px", fontSize: "12px", color: "#2563EB", border: "1px solid #DBEAFE" }}
+                          >
+                            Edit
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleRemovePotongan(idx)}
+                            className="btn btn-danger btn-sm"
+                            style={{ padding: "4px 8px", fontSize: "12px", borderRadius: "6px" }}
+                            title="Hapus"
+                          >
+                            <Trash2 size={13} />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+
+          {/* Ringkasan Perhitungan Netto */}
+          <div style={{ marginTop: "16px", backgroundColor: "#F8FAFC", borderRadius: "8px", padding: "16px", border: "1px solid #E2E8F0" }}>
+            <div style={{ display: "flex", flexDirection: "column", gap: "8px", maxWidth: "420px", marginLeft: "auto", fontSize: "13.5px" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", color: "#475569" }}>
+                <span>Total Nilai Tagihan (Bruto):</span>
+                <span style={{ fontWeight: 600 }}>Rp {new Intl.NumberFormat("id-ID").format(Number(form.nilai_tagihan || 0))}</span>
+              </div>
+              <div style={{ display: "flex", justifyContent: "space-between", color: "#DC2626" }}>
+                <span>Total Potongan / Pajak:</span>
+                <span style={{ fontWeight: 600 }}>- Rp {new Intl.NumberFormat("id-ID").format(totalPotongan)}</span>
+              </div>
+              <div style={{ borderTop: "2px dashed #CBD5E1", paddingTop: "8px", display: "flex", justifyContent: "space-between", color: "#0F172A", fontSize: "15px", fontWeight: 700 }}>
+                <span>Jumlah Diterima (Netto):</span>
+                <span style={{ color: "#16A34A" }}>Rp {new Intl.NumberFormat("id-ID").format(totalNetto)}</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Modal Dialog Input Potongan */}
+          {isPotonganDialogOpen && (
+            <div className="modal-overlay" onClick={(e) => e.target === e.currentTarget && setIsPotonganDialogOpen(false)}>
+              <div className="modal" style={{ maxWidth: "600px", zIndex: 1050 }}>
+                <div className="modal-header">
+                  <h3 style={{ fontSize: "16px", fontWeight: 700, margin: 0, color: "#1E293B" }}>
+                    {editingPotonganIndex !== null ? "Edit Potongan / Pajak" : "Tambah Potongan / Pajak"}
+                  </h3>
+                  <button
+                    type="button"
+                    className="btn btn-ghost btn-sm"
+                    onClick={() => setIsPotonganDialogOpen(false)}
+                    style={{ padding: "4px" }}
+                  >
+                    <X size={18} />
+                  </button>
+                </div>
+
+                <div className="modal-body" style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+                  <div>
+                    <label className="form-label" style={{ fontWeight: 600, color: "#334155" }}>
+                      Akun Rekening Potongan / Pajak (Kepala 2) <span style={{ color: "#DC2626" }}>*</span>
+                    </label>
+                    <Select
+                      instanceId="select-rekening-potongan"
+                      options={rekeningPotonganOptions}
+                      value={
+                        potonganDialogForm.kd_rek6
+                          ? {
+                            value: potonganDialogForm.kd_rek6,
+                            label: `${potonganDialogForm.kd_rek6} - ${potonganDialogForm.nm_rek6}`,
+                            name: potonganDialogForm.nm_rek6,
+                          }
+                          : null
+                      }
+                      onChange={(selected: any) => {
+                        setPotonganDialogForm({
+                          ...potonganDialogForm,
+                          kd_rek6: selected?.value || "",
+                          nm_rek6: selected?.name || "",
+                        });
+                      }}
+                      placeholder="-- Cari atau Pilih Rekening Potongan (2.x) --"
+                      isClearable
+                      menuPortalTarget={typeof window !== "undefined" ? document.body : null}
+                      styles={{
+                        control: (base) => ({ ...base, minHeight: '40px', borderRadius: '9px', borderColor: '#CBD5E1', fontSize: '13.5px' }),
+                        menuPortal: (base) => ({ ...base, zIndex: 99999 }),
+                        option: (base) => ({ ...base, fontSize: '13px' })
+                      }}
+                      noOptionsMessage={() => "Rekening tidak ditemukan"}
+                    />
+                  </div>
+
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "14px" }}>
+                    <div>
+                      <label className="form-label" style={{ fontWeight: 600, color: "#334155" }}>
+                        Nominal Potongan (Rp) <span style={{ color: "#DC2626" }}>*</span>
+                      </label>
+                      <input
+                        type="number"
+                        className="form-input"
+                        style={{ height: "40px", fontSize: "14px", fontWeight: 600 }}
+                        value={potonganDialogForm.nilai || ""}
+                        onChange={(e) => setPotonganDialogForm({ ...potonganDialogForm, nilai: Number(e.target.value) })}
+                        placeholder="0"
+                        min="0"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="form-label" style={{ fontWeight: 600, color: "#334155" }}>
+                        ID Billing <span style={{ fontSize: "12px", color: "#64748B", fontWeight: "normal" }}>(Opsional)</span>
+                      </label>
+                      <input
+                        type="text"
+                        className="form-input"
+                        style={{ height: "40px", fontSize: "13.5px" }}
+                        value={potonganDialogForm.id_billing || ""}
+                        onChange={(e) => setPotonganDialogForm({ ...potonganDialogForm, id_billing: e.target.value })}
+                        placeholder="Nomor / ID Billing"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="form-label" style={{ fontWeight: 600, color: "#334155" }}>
+                      Keterangan <span style={{ fontSize: "12px", color: "#64748B", fontWeight: "normal" }}>(Opsional)</span>
+                    </label>
+                    <textarea
+                      className="form-textarea"
+                      rows={2}
+                      style={{ fontSize: "13.5px" }}
+                      value={potonganDialogForm.keterangan || ""}
+                      onChange={(e) => setPotonganDialogForm({ ...potonganDialogForm, keterangan: e.target.value })}
+                      placeholder="Keterangan tambahan untuk potongan/pajak..."
+                    />
+                  </div>
+                </div>
+
+                <div className="modal-footer" style={{ borderTop: "1px solid #E2E8F0", padding: "16px 24px", display: "flex", justifyContent: "flex-end", gap: "10px" }}>
+                  <button
+                    type="button"
+                    onClick={() => setIsPotonganDialogOpen(false)}
+                    className="btn btn-ghost"
+                  >
+                    Batal
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleSavePotonganDialog}
+                    className="btn btn-primary"
+                  >
+                    {editingPotonganIndex !== null ? "Simpan Perubahan" : "Tambahkan ke Tagihan"}
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
 
         <div style={{ marginTop: "16px", paddingTop: "16px", borderTop: "1px solid #E2E8F0", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <div style={{ fontSize: "12px", color: "#64748B", display: "flex", gap: "6px", alignItems: "center" }}>

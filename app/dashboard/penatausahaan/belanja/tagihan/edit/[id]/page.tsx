@@ -13,6 +13,7 @@ export default async function EditTagihanPage({ params }: { params: Promise<{ id
     where: { id: parseInt(resolvedParams.id) },
     include: {
       rincian: true,
+      potongan: true,
       penerimaan_barang: {
         include: {
           pengadaan: true,
