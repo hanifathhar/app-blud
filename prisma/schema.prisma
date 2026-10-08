@@ -421,27 +421,47 @@ model SP2D {
 
 /// Buku Kas Umum
 model BKU {
-  id            Int       @id @default(autoincrement())
-  kd_upt        String    @db.VarChar(50)
-  sp2d_id       Int?
-  no_bukti      String?   @db.VarChar(50)
-  tgl_transaksi DateTime?
-  uraian        String?   @db.Text
-  debet         Float?    @default(0)
-  kredit        Float?    @default(0)
-  saldo         Float?    @default(0)
-  kd_rek6       String?   @db.VarChar(17)
-  jenis         String?   @db.VarChar(20) // kas, bank
-  bulan         Int?
-  tahun         Int?
-  dibuat_oleh   Int?
-  tgl_dibuat    DateTime  @default(now())
-  updated_at    DateTime  @updatedAt
+  id              Int       @id @default(autoincrement())
+  kd_upt          String    @db.VarChar(50)
+  nm_upt          String?   @db.VarChar(255)
+  sp2d_id         Int?
+  no_bukti        String?   @db.VarChar(100)
+  tgl_transaksi   DateTime?
+  uraian          String?   @db.Text
+  debet           Float?    @default(0)
+  kredit          Float?    @default(0)
+  saldo           Float?    @default(0)
+  
+  kd_ukm          String?   @db.VarChar(20)
+  nm_ukm          String?   @db.VarChar(100)
+  kd_peruntukan   String?   @db.VarChar(20)
+  nm_peruntukan   String?   @db.VarChar(100)
+  kd_komponen     String?   @db.VarChar(20)
+  nm_komponen     String?   @db.VarChar(225)
+  kd_rincian      String?   @db.VarChar(20)
+  nm_rincian      String?   @db.VarChar(225)
+  kd_spm          String?   @db.Char(5)
+  nm_spm          String?   @db.VarChar(225)
+  kd_sub_kegiatan String?   @db.VarChar(50)
+  nm_sub_kegiatan String?   @db.VarChar(225)
+  kd_rek6         String?   @db.VarChar(50)
+  nm_rek6         String?   @db.VarChar(255)
 
-  sp2d SP2D? @relation(fields: [sp2d_id], references: [id])
-  tagihan_id    Int?
-  tagihan       Tagihan? @relation(fields: [tagihan_id], references: [id])
+  jenis           String?   @db.VarChar(20) // kas, bank
+  bulan           Int?
+  tahun           Int?
+  dibuat_oleh     Int?
+  tgl_dibuat      DateTime  @default(now())
+  updated_at      DateTime  @updatedAt
 
+  sp2d            SP2D?     @relation(fields: [sp2d_id], references: [id])
+  tagihan_id      Int?
+  tagihan         Tagihan?  @relation(fields: [tagihan_id], references: [id])
+
+  @@index([kd_upt])
+  @@index([tahun])
+  @@index([bulan])
+  @@index([tgl_transaksi])
   @@map("bku")
 }
 
@@ -1220,6 +1240,7 @@ model Pengeluaran {
 
   tagihan               Tagihan?  @relation(fields: [tagihan_id], references: [id])
   rincian               RincianPengeluaran[]
+  potongan              PotonganPengeluaran[]
 
   @@index([kd_upt])
   @@index([tahun])
@@ -1260,6 +1281,35 @@ model RincianPengeluaran {
   pengeluaran           Pengeluaran @relation(fields: [pengeluaran_id], references: [id], onDelete: Cascade)
 
   @@map("tbl_rincian_pengeluaran")
+}
+
+model PotonganPengeluaran {
+  id              Int       @id @default(autoincrement())
+  pengeluaran_id  Int
+  tagihan_id      Int?
+  kd_upt          String?   @db.VarChar(50)
+  tahun           String?   @db.VarChar(4)
+  tgl_potongan    DateTime  @default(now())
+  kd_rek6         String?   @db.VarChar(50)
+  nm_rek6         String?   @db.VarChar(255)
+  nilai           Float     @default(0)
+  id_billing      String?   @db.VarChar(100)
+  keterangan      String?   @db.Text
+  status_setor    String    @default("belum_disetor") // belum_disetor, disetor
+  no_ntpn         String?   @db.VarChar(100)
+  tgl_setor       DateTime?
+  tgl_dibuat      DateTime  @default(now())
+  updated_at      DateTime  @updatedAt
+
+  pengeluaran     Pengeluaran @relation(fields: [pengeluaran_id], references: [id], onDelete: Cascade)
+
+  @@index([pengeluaran_id])
+  @@index([tagihan_id])
+  @@index([kd_upt])
+  @@index([tahun])
+  @@index([kd_rek6])
+  @@index([status_setor])
+  @@map("tbl_potongan_pengeluaran")
 }
 
 /// Master Penandatangan Dokumen per UPT

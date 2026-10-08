@@ -31,6 +31,7 @@ export default function PengeluaranForm() {
   });
 
   const [tagihanList, setTagihanList] = useState<any[]>([]);
+  const [potonganList, setPotonganList] = useState<any[]>([]);
   const [upts, setUpts] = useState<any[]>([]);
   const [selectedUpt, setSelectedUpt] = useState("");
   const [autoNoPengeluaran, setAutoNoPengeluaran] = useState<string>("");
@@ -94,15 +95,37 @@ export default function PengeluaranForm() {
   const handleTagihanSelect = (tagihan: any | null) => {
     if (!tagihan) {
       setSelectedTagihan(null);
+      setPotonganList([]);
       setForm(prev => ({ ...prev, tagihan_id: "", keterangan: "" }));
       return;
     }
     setSelectedTagihan(tagihan);
+    if (tagihan.potongan && Array.isArray(tagihan.potongan)) {
+      setPotonganList(tagihan.potongan.map((p: any) => ({
+        ...p,
+        no_ntpn: p.no_ntpn || "",
+        tgl_setor: p.tgl_setor ? new Date(p.tgl_setor).toISOString().split("T")[0] : "",
+        status_setor: p.no_ntpn ? "disetor" : (p.status_setor || "belum_disetor"),
+      })));
+    } else {
+      setPotonganList([]);
+    }
     setForm(prev => ({
       ...prev,
       tagihan_id: tagihan.id,
       keterangan: tagihan.keterangan || "",
     }));
+  };
+
+  const handleNtpnChange = (index: number, val: string) => {
+    const updated = [...potonganList];
+    updated[index] = {
+      ...updated[index],
+      no_ntpn: val,
+      status_setor: val.trim() ? "disetor" : "belum_disetor",
+      tgl_setor: val.trim() ? (updated[index].tgl_setor || form.tgl_pengeluaran) : "",
+    };
+    setPotonganList(updated);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -117,7 +140,10 @@ export default function PengeluaranForm() {
       const res = await fetch("/api/penatausahaan/belanja/pengeluaran", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(form),
+        body: JSON.stringify({
+          ...form,
+          potongan: potonganList,
+        }),
       });
 
       if (res.ok) {
@@ -400,6 +426,75 @@ export default function PengeluaranForm() {
                         <td style={{ textAlign: "right", color: "#2563EB", fontSize: "14.5px" }}>
                           Rp {new Intl.NumberFormat("id-ID").format(selectedTagihan.rincian.reduce((sum: number, r: any) => sum + (Number(r.total) || 0), 0))}
                         </td>
+                      </tr>
+                    </tfoot>
+                  </table>
+                </div>
+              </div>
+            )}
+
+            {/* Rincian Potongan/Pajak */}
+            {potonganList && potonganList.length > 0 && (
+              <div style={{ marginTop: "20px" }}>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "12px" }}>
+                  <h3 style={{ fontSize: "14px", fontWeight: 700, color: "#1E293B", margin: 0 }}>Rincian Potongan / Pajak</h3>
+                  <span style={{ fontSize: "12px", color: "#64748B" }}>
+                    Isi kolom <strong>NTPN</strong> jika potongan pajak sudah disetor
+                  </span>
+                </div>
+                <div className="tbl-wrap">
+                  <table className="tbl" style={{ minWidth: "800px" }}>
+                    <thead>
+                      <tr>
+                        <th style={{ width: 40, textAlign: "center" }}>No</th>
+                        <th>Akun Rekening Potongan / Pajak</th>
+                        <th style={{ width: 140 }}>ID Billing</th>
+                        <th style={{ width: 160, textAlign: "right" }}>Nominal (Rp)</th>
+                        <th style={{ width: 180 }}>No. NTPN (Opsional)</th>
+                        <th>Keterangan</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {potonganList.map((p: any, idx: number) => (
+                        <tr key={idx}>
+                          <td style={{ textAlign: "center", verticalAlign: "middle" }}>{idx + 1}</td>
+                          <td style={{ verticalAlign: "middle" }}>
+                            <div style={{ fontWeight: 600 }}>{p.kd_rek6}</div>
+                            <div style={{ fontSize: "12px", color: "#64748B" }}>{p.nm_rek6 || "-"}</div>
+                          </td>
+                          <td style={{ verticalAlign: "middle" }}>
+                            {p.id_billing ? (
+                              <span style={{ backgroundColor: "#F1F5F9", padding: "2px 6px", borderRadius: "4px", fontSize: "12px", fontFamily: "monospace" }}>
+                                {p.id_billing}
+                              </span>
+                            ) : "-"}
+                          </td>
+                          <td style={{ verticalAlign: "middle", textAlign: "right", fontWeight: 600, color: "#EF4444" }}>
+                            {new Intl.NumberFormat("id-ID").format(p.nilai || 0)}
+                          </td>
+                          <td style={{ verticalAlign: "middle" }}>
+                            <input
+                              type="text"
+                              className="form-input"
+                              placeholder="Masukkan No. NTPN..."
+                              style={{ fontSize: "12px", padding: "4px 8px", minHeight: "32px", fontFamily: "monospace" }}
+                              value={p.no_ntpn || ""}
+                              onChange={(e) => handleNtpnChange(idx, e.target.value)}
+                            />
+                          </td>
+                          <td style={{ verticalAlign: "middle", color: "#64748B", fontSize: "12px" }}>
+                            {p.keterangan || "-"}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                    <tfoot>
+                      <tr className="tbl-total">
+                        <td colSpan={3} style={{ textAlign: "right" }}>Total Potongan :</td>
+                        <td style={{ textAlign: "right", color: "#EF4444", fontSize: "14.5px" }}>
+                          Rp {new Intl.NumberFormat("id-ID").format(potonganList.reduce((sum: number, p: any) => sum + (Number(p.nilai) || 0), 0))}
+                        </td>
+                        <td colSpan={2}></td>
                       </tr>
                     </tfoot>
                   </table>

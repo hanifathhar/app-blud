@@ -17,9 +17,13 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
       where: { id: pengeluaranId },
       include: {
         tagihan: {
-          include: { rincian: true },
+          include: { 
+            rincian: true,
+            potongan: true,
+          },
         },
         rincian: true,
+        potongan: true,
       },
     });
 
@@ -54,12 +58,40 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
       return NextResponse.json({ error: "Pengeluaran sudah disahkan dalam LPJ dan terkunci. Batalkan pengesahan LPJ terlebih dahulu sebelum mengubah data." }, { status: 400 });
     }
 
-    const updated = await prisma.pengeluaran.update({
-      where: { id: pengeluaranId },
-      data: {
-        tgl_pengeluaran: new Date(tgl_pengeluaran),
-        keterangan: keterangan || existing.keterangan,
-      },
+    const updated = await prisma.$transaction(async (tx) => {
+      const peng = await tx.pengeluaran.update({
+        where: { id: pengeluaranId },
+        data: {
+          tgl_pengeluaran: new Date(tgl_pengeluaran),
+          keterangan: keterangan || existing.keterangan,
+        },
+      });
+
+      // Update potongan jika ada
+      if (Array.isArray(body.potongan)) {
+        for (const p of body.potongan) {
+          if (p.id) {
+            const ntpn = (p.no_ntpn || "").trim();
+            const tglSetor = p.tgl_setor ? new Date(p.tgl_setor) : (ntpn ? new Date(tgl_pengeluaran) : null);
+            const statusSetor = ntpn ? "disetor" : (p.status_setor || "belum_disetor");
+
+            await tx.potonganPengeluaran.updateMany({
+              where: {
+                id: p.id,
+                pengeluaran_id: pengeluaranId,
+              },
+              data: {
+                no_ntpn: ntpn || null,
+                tgl_setor: tglSetor,
+                status_setor: statusSetor,
+                keterangan: p.keterangan,
+              },
+            });
+          }
+        }
+      }
+
+      return peng;
     });
 
     return NextResponse.json({ message: "Data Pengeluaran berhasil diupdate", data: updated });
@@ -89,6 +121,9 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
     }
 
     await prisma.$transaction(async (tx) => {
+      // Hapus potongan pengeluaran
+      await tx.potonganPengeluaran.deleteMany({ where: { pengeluaran_id: pengeluaranId } });
+
       // Hapus rincian pengeluaran
       await tx.rincianPengeluaran.deleteMany({ where: { pengeluaran_id: pengeluaranId } });
 

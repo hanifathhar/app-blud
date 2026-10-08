@@ -75,9 +75,9 @@ export async function GET(req: Request) {
   const withSaldo = data.map((row) => {
     runningSaldo = runningSaldo + (row.debet || 0) - (row.kredit || 0);
 
-    // Cari nama rekening belanja dari rincian tagihan / pengeluaran atau master msRek6
-    let nm_rek6 = "";
-    if (row.kd_rek6) {
+    // Cari nama rekening belanja dari kolom nm_rek6, rincian tagihan / pengeluaran atau master msRek6
+    let nm_rek6 = (row as any).nm_rek6 || "";
+    if (!nm_rek6 && row.kd_rek6) {
       nm_rek6 = mapRek6[row.kd_rek6] || "";
       if (!nm_rek6 && row.tagihan?.rincian) {
         const found = row.tagihan.rincian.find((r) => r.kd_rek6 === row.kd_rek6);
@@ -131,7 +131,10 @@ export async function POST(req: Request) {
       
       const tagihan = await prisma.tagihan.findUnique({
         where: { id: tagihanId },
-        include: { rincian: true },
+        include: { 
+          rincian: true,
+          potongan: true,
+        },
       });
 
       if (!tagihan) {
@@ -141,14 +144,28 @@ export async function POST(req: Request) {
       await prisma.$transaction(async (tx) => {
         bku = await tx.bKU.create({
           data: {
-            kd_upt: kd_upt || "",
+            kd_upt: kd_upt || tagihan.kd_upt || "",
+            nm_upt: tagihan.nm_upt || null,
             tagihan_id: tagihanId,
             no_bukti: body.no_bukti,
             tgl_transaksi: tgl,
             uraian: body.uraian,
             debet: body.debet ? parseFloat(body.debet) : 0,
             kredit: body.kredit ? parseFloat(body.kredit) : 0,
-            kd_rek6: body.kd_rek6,
+            kd_ukm: tagihan.kd_ukm || null,
+            nm_ukm: tagihan.nm_ukm || null,
+            kd_peruntukan: tagihan.kd_peruntukan || null,
+            nm_peruntukan: tagihan.nm_peruntukan || null,
+            kd_komponen: tagihan.kd_komponen || null,
+            nm_komponen: tagihan.nm_komponen || null,
+            kd_rincian: tagihan.kd_rincian || null,
+            nm_rincian: tagihan.nm_rincian || null,
+            kd_spm: tagihan.kd_spm || null,
+            nm_spm: tagihan.nm_spm || null,
+            kd_sub_kegiatan: tagihan.kd_sub_kegiatan || null,
+            nm_sub_kegiatan: tagihan.nm_sub_kegiatan || null,
+            kd_rek6: body.kd_rek6 || tagihan.kd_rek6 || null,
+            nm_rek6: tagihan.nm_rek6 || null,
             jenis: body.jenis || "kas",
             bulan,
             tahun,
@@ -228,18 +245,53 @@ export async function POST(req: Request) {
             data: rincianData,
           });
         }
+
+        // Buat Potongan Pengeluaran secara otomatis dari Potongan Tagihan
+        if (tagihan.potongan && tagihan.potongan.length > 0) {
+          const potonganData = tagihan.potongan.map(p => ({
+            pengeluaran_id: pengeluaran.id,
+            tagihan_id: tagihanId,
+            kd_upt: tagihan.kd_upt,
+            tahun: tagihan.tahun,
+            tgl_potongan: tgl,
+            kd_rek6: p.kd_rek6,
+            nm_rek6: p.nm_rek6,
+            nilai: p.nilai,
+            id_billing: p.id_billing,
+            keterangan: p.keterangan || "",
+            status_setor: "belum_disetor",
+          }));
+
+          await tx.potonganPengeluaran.createMany({
+            data: potonganData,
+          });
+        }
       });
     } else {
       bku = await prisma.bKU.create({
         data: {
           kd_upt: kd_upt || "",
+          nm_upt: body.nm_upt || null,
           sp2d_id: body.sp2d_id ? parseInt(body.sp2d_id) : null,
           no_bukti: body.no_bukti,
           tgl_transaksi: tgl,
           uraian: body.uraian,
           debet: body.debet ? parseFloat(body.debet) : 0,
           kredit: body.kredit ? parseFloat(body.kredit) : 0,
-          kd_rek6: body.kd_rek6,
+          kd_ukm: body.kd_ukm || null,
+          nm_ukm: body.nm_ukm || null,
+          kd_peruntukan: body.kd_peruntukan || null,
+          nm_peruntukan: body.nm_peruntukan || null,
+          kd_komponen: body.kd_komponen || null,
+          nm_komponen: body.nm_komponen || null,
+          kd_rincian: body.kd_rincian || null,
+          nm_rincian: body.nm_rincian || null,
+          kd_spm: body.kd_spm || null,
+          nm_spm: body.nm_spm || null,
+          kd_sub_kegiatan: body.kd_sub_kegiatan || null,
+          nm_sub_kegiatan: body.nm_sub_kegiatan || null,
+          kd_rek6: body.kd_rek6 || null,
+          nm_rek6: body.nm_rek6 || null,
           jenis: body.jenis || "kas",
           bulan,
           tahun,

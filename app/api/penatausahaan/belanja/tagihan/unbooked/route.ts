@@ -39,6 +39,7 @@ export async function GET(req: NextRequest) {
       where: whereClause,
       include: {
         rincian: true,
+        potongan: true,
       },
       orderBy: {
         tgl_dibuat: "desc",

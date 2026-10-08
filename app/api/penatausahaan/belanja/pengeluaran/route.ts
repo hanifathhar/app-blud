@@ -118,7 +118,10 @@ export async function POST(req: NextRequest) {
     const tagihanIdNum = Number(tagihan_id);
     const tagihan = await prisma.tagihan.findUnique({
       where: { id: tagihanIdNum },
-      include: { rincian: true },
+      include: { 
+        rincian: true,
+        potongan: true,
+      },
     });
 
     if (!tagihan) {
@@ -251,6 +254,37 @@ export async function POST(req: NextRequest) {
 
         await tx.rincianPengeluaran.createMany({
           data: rincianData,
+        });
+      }
+
+      // Buat Potongan Pengeluaran secara otomatis dari Potongan Tagihan (dengan support input NTPN jika ada)
+      if (tagihan.potongan && tagihan.potongan.length > 0) {
+        const clientPotongan = Array.isArray(body.potongan) ? body.potongan : [];
+        const potonganData = tagihan.potongan.map((p, idx) => {
+          const clientP = clientPotongan.find((cp: any) => cp.id === p.id || (cp.kd_rek6 === p.kd_rek6 && cp.nilai === p.nilai)) || clientPotongan[idx] || {};
+          const ntpn = (clientP.no_ntpn || "").trim();
+          const tglSetor = clientP.tgl_setor ? new Date(clientP.tgl_setor) : (ntpn ? new Date(tgl_pengeluaran) : null);
+          const statusSetor = ntpn ? "disetor" : (clientP.status_setor || "belum_disetor");
+
+          return {
+            pengeluaran_id: pengeluaran.id,
+            tagihan_id: tagihanIdNum,
+            kd_upt: tagihan.kd_upt,
+            tahun: tagihan.tahun,
+            tgl_potongan: new Date(tgl_pengeluaran),
+            kd_rek6: p.kd_rek6,
+            nm_rek6: p.nm_rek6,
+            nilai: p.nilai,
+            id_billing: clientP.id_billing || p.id_billing,
+            keterangan: clientP.keterangan || p.keterangan || "",
+            no_ntpn: ntpn || null,
+            tgl_setor: tglSetor,
+            status_setor: statusSetor,
+          };
+        });
+
+        await tx.potonganPengeluaran.createMany({
+          data: potonganData,
         });
       }
 

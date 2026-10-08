@@ -103,7 +103,11 @@ const menus: MenuItem[] = [
     roles: ["superadmin", "kpa", "keuangan", "perencana"],
     children: [
       { label: "Realisasi Belanja", href: "/dashboard/pelaporan/realisasi", roles: ["superadmin", "kpa", "keuangan", "perencana"] },
-      { label: "LPJ", href: "/dashboard/pelaporan/lpj", roles: ["superadmin", "kpa", "keuangan"] },
+      { label: "Buku Pembantu Rincian Objek", href: "/dashboard/pelaporan/bku-rincian-objek", roles: ["superadmin", "kpa", "keuangan"] },
+      { label: "Buku Pembantu Pajak", href: "/dashboard/pelaporan/bku-pajak", roles: ["superadmin", "kpa", "keuangan"] },
+      { label: "Register SPJ", href: "/dashboard/pelaporan/reg-spj", roles: ["superadmin", "kpa", "keuangan"] },
+      { label: "Rekapitulasi Belanja", href: "/dashboard/pelaporan/rekap-belanja", roles: ["superadmin", "kpa", "keuangan"] },
+      { label: "Pengesahan LPJ", href: "/dashboard/pelaporan/lpj", roles: ["superadmin", "kpa", "keuangan"] },
     ],
   },
   {
