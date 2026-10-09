@@ -452,9 +452,16 @@ export default function LpjPage() {
                       {item.keterangan || "-"}
                     </td>
                     <td style={{ padding: "16px 16px", textAlign: "center", verticalAlign: "top" }}>
-                      <span style={{ backgroundColor: "#DCFCE7", color: "#166534", padding: "4px 8px", borderRadius: 4, fontSize: 11, fontWeight: 600 }}>
-                        {item.status ? item.status.toUpperCase() : "DISAHKAN"}
-                      </span>
+                      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4 }}>
+                        <span style={{ backgroundColor: "#DCFCE7", color: "#166534", padding: "3px 8px", borderRadius: 4, fontSize: 11, fontWeight: 600 }}>
+                          {item.status ? item.status.toUpperCase() : "DISAHKAN"}
+                        </span>
+                        {item.is_sp3b === 1 && (
+                          <span style={{ backgroundColor: "#DBEAFE", color: "#1E40AF", padding: "2px 6px", borderRadius: 4, fontSize: 10, fontWeight: 700, border: "1px solid #BFDBFE" }} title={`No SP3B: ${item.no_sp3b}`}>
+                            SP3B TERKUNCI
+                          </span>
+                        )}
+                      </div>
                     </td>
                     <td style={{ padding: "16px 16px", fontSize: 12, color: "#10B981", fontWeight: 700, textAlign: "right", verticalAlign: "top" }}>
                       {formatRupiah(Number(item.total_pendapatan) || 0)}
@@ -479,13 +486,23 @@ export default function LpjPage() {
                           <Printer size={14} />
                         </button>
                         {canVerify && (
-                          <button
-                            onClick={() => handleDelete(item)}
-                            title="Batalkan Pengesahan LPJ"
-                            style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 28, height: 28, borderRadius: 4, border: "1px solid #FECACA", backgroundColor: "#FEF2F2", color: "#EF4444", cursor: "pointer" }}
-                          >
-                            <Trash2 size={14} />
-                          </button>
+                          item.is_sp3b === 1 ? (
+                            <button
+                              disabled
+                              title={`LPJ Terkunci oleh Dokumen SP3B (${item.no_sp3b}). Batalkan SP3B di Dinkes terlebih dahulu.`}
+                              style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 28, height: 28, borderRadius: 4, border: "1px solid #E2E8F0", backgroundColor: "#F1F5F9", color: "#94A3B8", cursor: "not-allowed" }}
+                            >
+                              <Trash2 size={14} />
+                            </button>
+                          ) : (
+                            <button
+                              onClick={() => handleDelete(item)}
+                              title="Batalkan Pengesahan LPJ"
+                              style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 28, height: 28, borderRadius: 4, border: "1px solid #FECACA", backgroundColor: "#FEF2F2", color: "#EF4444", cursor: "pointer" }}
+                            >
+                              <Trash2 size={14} />
+                            </button>
+                          )
                         )}
                       </div>
                     </td>

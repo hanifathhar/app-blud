@@ -70,27 +70,32 @@ export async function GET(req: Request) {
       }
 
       // Ambil daftar seluruh LPJ yang telah diterbitkan pada unit (atau semua unit) & tahun ini
-      let queryWhere = `WHERE "tahun" = '${tahunStr}'`;
+      let queryWhere = `WHERE l."tahun" = '${tahunStr}'`;
       if (kd_upt) {
-        queryWhere += ` AND "kd_upt" = '${kd_upt}'`;
+        queryWhere += ` AND l."kd_upt" = '${kd_upt}'`;
       }
       if (q) {
         const cleanQ = q.replace(/'/g, "''");
-        queryWhere += ` AND ("no_lpj" ILIKE '%${cleanQ}%' OR "nm_upt" ILIKE '%${cleanQ}%' OR "keterangan" ILIKE '%${cleanQ}%' OR "sumdan" ILIKE '%${cleanQ}%')`;
+        queryWhere += ` AND (l."no_lpj" ILIKE '%${cleanQ}%' OR l."nm_upt" ILIKE '%${cleanQ}%' OR l."keterangan" ILIKE '%${cleanQ}%' OR l."sumdan" ILIKE '%${cleanQ}%')`;
       }
 
+      const countWhere = queryWhere.replace(/l\./g, '');
       const countRows: any[] = await prisma.$queryRawUnsafe(
-        `SELECT count(*)::int as count FROM "tbl_lpj" ${queryWhere}`
+        `SELECT count(*)::int as count FROM "tbl_lpj" ${countWhere}`
       );
       totalPublished = countRows && countRows[0] ? Number(countRows[0].count) : 0;
       totalPages = Math.ceil(totalPublished / limit) || 1;
       const offset = (page - 1) * limit;
 
       const listRows: any[] = await prisma.$queryRawUnsafe(
-        `SELECT id, no_lpj, tahun, bulan, kd_upt, nm_upt, sumdan, nm_sumdan, tgl_lpj, total_pendapatan, total_belanja, status, disahkan_oleh, tgl_disahkan, keterangan, created_at
-         FROM "tbl_lpj"
+        `SELECT l.id, l.no_lpj, l.tahun, l.bulan, l.kd_upt, l.nm_upt, l.sumdan, l.nm_sumdan, l.tgl_lpj,
+                l.total_pendapatan, l.total_belanja, l.status, l.disahkan_oleh, l.tgl_disahkan, l.keterangan, l.created_at,
+                s."no_sp3b",
+                CASE WHEN s."no_sp3b" IS NOT NULL THEN 1 ELSE 0 END AS is_sp3b
+         FROM "tbl_lpj" l
+         LEFT JOIN "trhsp3b" s ON s."kd_upt" = l."kd_upt" AND s."no_lpj" = l."no_lpj"
          ${queryWhere}
-         ORDER BY "nm_upt" ASC, "tahun" DESC, "bulan" ASC, "no_lpj" ASC
+         ORDER BY l."nm_upt" ASC, l."tahun" DESC, l."bulan" ASC, l."no_lpj" ASC
          LIMIT ${limit} OFFSET ${offset}`
       );
       publishedLpjList = listRows || [];
@@ -606,6 +611,17 @@ export async function DELETE(req: Request) {
   }
 
   try {
+    // Cek apakah LPJ sudah dibuatkan SP3B di trhsp3b
+    const sp3bCheck: any[] = await prisma.$queryRawUnsafe(
+      `SELECT "no_sp3b" FROM "trhsp3b" WHERE "kd_upt" = $1 AND "bulan" = $2 ${sumdan ? 'AND "sumdan" = $3' : ''} LIMIT 1`,
+      ...(sumdan ? [kd_upt, bulan, sumdan] : [kd_upt, bulan])
+    );
+    if (sp3bCheck && sp3bCheck.length > 0) {
+      return NextResponse.json({
+        error: `LPJ ini telah diterbitkan Surat Permintaan Pengesahan (SP3B No: ${sp3bCheck[0].no_sp3b}) oleh Dinas Kesehatan. Batalkan dokumen SP3B terlebih dahulu jika ingin merevisi LPJ ini.`
+      }, { status: 400 });
+    }
+
     const startDate = new Date(parseInt(tahun), bulan - 1, 1);
     const endDate = new Date(parseInt(tahun), bulan, 1);
 

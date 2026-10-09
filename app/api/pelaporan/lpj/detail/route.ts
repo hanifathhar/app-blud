@@ -97,3 +97,56 @@ export async function GET(req: Request) {
     return NextResponse.json({ error: error.message || "Gagal memuat detail LPJ" }, { status: 500 });
   }
 }
+
+export async function PUT(req: Request) {
+  const user = getUserFromRequest(req as NextRequest);
+  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  try {
+    const body = await req.json();
+    const { id, kdUnit, no_lpj, tgl_lpj } = body;
+
+    if (!tgl_lpj) {
+      return NextResponse.json({ error: "Tanggal LPJ (tgl_lpj) wajib diisi" }, { status: 400 });
+    }
+
+    if (!id && (!kdUnit || !no_lpj)) {
+      return NextResponse.json({ error: "Parameter id atau (kdUnit dan no_lpj) diperlukan" }, { status: 400 });
+    }
+
+    const newDate = new Date(tgl_lpj);
+    if (isNaN(newDate.getTime())) {
+      return NextResponse.json({ error: "Format tanggal tidak valid" }, { status: 400 });
+    }
+
+    let updatedRows: any[] = [];
+    if (id) {
+      updatedRows = await prisma.$queryRawUnsafe(
+        `UPDATE "tbl_lpj" SET "tgl_lpj" = $1, "updated_at" = NOW() WHERE "id" = $2 RETURNING *`,
+        newDate,
+        parseInt(id)
+      );
+    } else {
+      updatedRows = await prisma.$queryRawUnsafe(
+        `UPDATE "tbl_lpj" SET "tgl_lpj" = $1, "updated_at" = NOW() WHERE "kd_upt" = $2 AND "no_lpj" = $3 RETURNING *`,
+        newDate,
+        kdUnit,
+        no_lpj
+      );
+    }
+
+    if (!updatedRows || updatedRows.length === 0) {
+      return NextResponse.json({ error: "Dokumen LPJ tidak ditemukan atau gagal diperbarui" }, { status: 404 });
+    }
+
+    return NextResponse.json({
+      success: true,
+      message: "Tanggal pengesahan LPJ berhasil diperbarui",
+      data: updatedRows[0],
+    });
+  } catch (error: any) {
+    console.error("PUT LPJ Detail Error:", error);
+    return NextResponse.json({ error: error.message || "Gagal memperbarui tanggal LPJ" }, { status: 500 });
+  }
+}
+

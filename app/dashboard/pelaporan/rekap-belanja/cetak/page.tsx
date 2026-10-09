@@ -208,13 +208,13 @@ function CetakRekapBelanjaContent() {
         }}
       >
         <button
-          onClick={() => router.back()}
+          onClick={() => window.close()}
           style={{
             display: "inline-flex",
             alignItems: "center",
             gap: "6px",
             padding: "8px 16px",
-            fontSize: "13px",
+            fontSize: "14px",
             fontWeight: 500,
             color: "#475569",
             backgroundColor: "#F1F5F9",
@@ -223,7 +223,7 @@ function CetakRekapBelanjaContent() {
             cursor: "pointer",
           }}
         >
-          <ArrowLeft size={15} /> Tutup
+          <ArrowLeft size={16} /> Tutup
         </button>
 
         {/* Paper Size Selector */}
@@ -295,87 +295,89 @@ function CetakRekapBelanjaContent() {
 
       {/* Sheet Halaman Cetak */}
       <div className="cetak-sheet text-black font-sans">
-        {/* Header Format Resmi Sesuai Gambar */}
-        <div className="text-center mb-3">
-          <h2 className="text-[12px] font-bold uppercase tracking-wider">
+        {/* Header Title */}
+        <div style={{ textAlign: "center", marginBottom: "16px" }}>
+          <h2 style={{ fontSize: "13px", fontWeight: "bold", margin: "0 0 2px 0", letterSpacing: "0.5px" }}>
             PEMERINTAH KABUPATEN TAPANULI SELATAN
           </h2>
-          <h1 className="text-[13px] font-extrabold uppercase tracking-wide">
+          <h1 style={{ fontSize: "14px", fontWeight: "bold", margin: "0 0 2px 0", letterSpacing: "0.5px" }}>
             LAPORAN PERTANGGUNGJAWABAN BENDAHARA PENGELUARAN
           </h1>
-          <h3 className="text-[11px] font-bold uppercase tracking-wide">
+          <h3 style={{ fontSize: "13px", fontWeight: "bold", margin: "0", letterSpacing: "0.5px" }}>
             (SPJ BELANJA FUNGSIONAL)
           </h3>
         </div>
 
-        {/* Metadata Header Kiri */}
-        <div className="text-[9.5px] leading-tight mb-3 font-normal max-w-2xl">
-          <table className="border-none w-full">
+        {/* Metadata Information List (Exact like BKU Rincian Objek) */}
+        <div style={{ width: "100%", marginBottom: "12px" }}>
+          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "11px" }}>
             <tbody>
               <tr>
-                <td className="w-56 py-0.5 font-bold">SKPD/UPT</td>
-                <td className="w-4 py-0.5">:</td>
-                <td className="py-0.5 font-semibold">{kd_upt} - {upt?.nm_upt || "Puskesmas Batang Toru"}</td>
+                <td style={{ width: "240px", padding: "1.5px 0", verticalAlign: "top" }}>Unit/UPT</td>
+                <td style={{ width: "15px", padding: "1.5px 0", verticalAlign: "top" }}>:</td>
+                <td style={{ padding: "1.5px 0", verticalAlign: "top" }}>
+                  {data.upt?.kd_upt ? `${data.upt?.kd_upt} - ${data.upt?.nm_upt}` : `${kd_upt} - Puskesmas Batang Toru`}
+                </td>
               </tr>
               <tr>
-                <td className="py-0.5 font-bold">Pengguna/Kuasa Pengguna Anggaran</td>
-                <td className="py-0.5">:</td>
-                <td className="py-0.5 font-semibold">{namaKpa}</td>
+                <td style={{ padding: "1.5px 0", verticalAlign: "top" }}>Pengguna/Kuasa Pengguna Anggaran</td>
+                <td style={{ padding: "1.5px 0", verticalAlign: "top" }}>:</td>
+                <td style={{ padding: "1.5px 0", verticalAlign: "top" }}>{namaKpa}</td>
               </tr>
               <tr>
-                <td className="py-0.5 font-bold">Bendahara Pengeluaran</td>
-                <td className="py-0.5">:</td>
-                <td className="py-0.5 font-semibold">{namaBendahara}</td>
+                <td style={{ padding: "1.5px 0", verticalAlign: "top" }}>Bendahara Pengeluaran</td>
+                <td style={{ padding: "1.5px 0", verticalAlign: "top" }}>:</td>
+                <td style={{ padding: "1.5px 0", verticalAlign: "top" }}>{namaBendahara}</td>
               </tr>
               <tr>
-                <td className="py-0.5 font-bold">Tahun Anggaran</td>
-                <td className="py-0.5">:</td>
-                <td className="py-0.5 font-semibold">{tahun}</td>
+                <td style={{ padding: "1.5px 0", verticalAlign: "top" }}>Tahun Anggaran</td>
+                <td style={{ padding: "1.5px 0", verticalAlign: "top" }}>:</td>
+                <td style={{ padding: "1.5px 0", verticalAlign: "top" }}>{tahun}</td>
               </tr>
               <tr>
-                <td className="py-0.5 font-bold">Bulan</td>
-                <td className="py-0.5">:</td>
-                <td className="py-0.5 font-semibold uppercase">{BULAN_NAMA[bulanNum]}</td>
+                <td style={{ padding: "1.5px 0", verticalAlign: "top" }}>Bulan</td>
+                <td style={{ padding: "1.5px 0", verticalAlign: "top" }}>:</td>
+                <td style={{ padding: "1.5px 0", verticalAlign: "top", textTransform: "uppercase" }}>{BULAN_NAMA[bulanNum]}</td>
               </tr>
             </tbody>
           </table>
         </div>
 
         {/* Tabel Rekapitulasi SPJ Belanja Bertingkat Format Resmi */}
-        <table className="w-full text-[8.5px] border-collapse border border-black font-sans">
+        <table className="w-full text-[8.5px] border-collapse border border-black font-sans leading-tight">
           <thead>
-            <tr className="text-center font-bold">
-              <th rowSpan={2} className="border border-black p-1 w-[120px]">KODE<br />REKENING</th>
+            <tr className="text-center font-bold bg-white">
+              <th rowSpan={2} className="border border-black p-1 w-[110px]">KODE<br />REKENING</th>
               <th rowSpan={2} className="border border-black p-1 min-w-[200px]">URAIAN</th>
-              <th rowSpan={2} className="border border-black p-1 w-[80px]">JUMLAH<br />ANGGARAN<br />(Rp)</th>
+              <th rowSpan={2} className="border border-black p-1 w-[75px]">JUMLAH<br />ANGGARAN<br />(Rp)</th>
               <th colSpan={3} className="border border-black p-1">APBD</th>
               <th colSpan={3} className="border border-black p-1">BLUD</th>
               <th colSpan={3} className="border border-black p-1">BOK</th>
               <th colSpan={3} className="border border-black p-1">JKN</th>
-              <th rowSpan={2} className="border border-black p-1 w-[80px]">
-                TOTAL SPJ<br />(APBD + BLUD + BOK + JKN)<br />(Rp)
+              <th rowSpan={2} className="border border-black p-1 w-[78px]">
+                TOTAL SPJ<br />(APBD+BLUD+<br />BOK+JKN) (Rp)
               </th>
-              <th rowSpan={2} className="border border-black p-1 w-[80px]">SISA ANGGARAN<br />(Rp)</th>
+              <th rowSpan={2} className="border border-black p-1 w-[75px]">SISA ANGGARAN<br />(Rp)</th>
             </tr>
-            <tr className="text-center font-bold text-[8px]">
+            <tr className="text-center font-bold text-[7.5px] bg-white">
               {/* APBD */}
-              <th className="border border-black p-0.5 w-[58px]">S/D. BULAN LALU</th>
-              <th className="border border-black p-0.5 w-[58px]">BULAN INI</th>
-              <th className="border border-black p-0.5 w-[58px]">S/D. BULAN INI</th>
+              <th className="border border-black p-0.5 w-[52px]">S/D. BULAN LALU</th>
+              <th className="border border-black p-0.5 w-[52px]">BULAN INI</th>
+              <th className="border border-black p-0.5 w-[52px]">S/D. BULAN INI</th>
               {/* BLUD */}
-              <th className="border border-black p-0.5 w-[58px]">S/D. BULAN LALU</th>
-              <th className="border border-black p-0.5 w-[58px]">BULAN INI</th>
-              <th className="border border-black p-0.5 w-[58px]">S/D. BULAN INI</th>
+              <th className="border border-black p-0.5 w-[52px]">S/D. BULAN LALU</th>
+              <th className="border border-black p-0.5 w-[52px]">BULAN INI</th>
+              <th className="border border-black p-0.5 w-[52px]">S/D. BULAN INI</th>
               {/* BOK */}
-              <th className="border border-black p-0.5 w-[58px]">S/D. BULAN LALU</th>
-              <th className="border border-black p-0.5 w-[58px]">BULAN INI</th>
-              <th className="border border-black p-0.5 w-[58px]">S/D. BULAN INI</th>
+              <th className="border border-black p-0.5 w-[52px]">S/D. BULAN LALU</th>
+              <th className="border border-black p-0.5 w-[52px]">BULAN INI</th>
+              <th className="border border-black p-0.5 w-[52px]">S/D. BULAN INI</th>
               {/* JKN */}
-              <th className="border border-black p-0.5 w-[58px]">S/D. BULAN LALU</th>
-              <th className="border border-black p-0.5 w-[58px]">BULAN INI</th>
-              <th className="border border-black p-0.5 w-[58px]">S/D. BULAN INI</th>
+              <th className="border border-black p-0.5 w-[52px]">S/D. BULAN LALU</th>
+              <th className="border border-black p-0.5 w-[52px]">BULAN INI</th>
+              <th className="border border-black p-0.5 w-[52px]">S/D. BULAN INI</th>
             </tr>
-            <tr className="text-center text-[7.5px] italic">
+            <tr className="text-center text-[7px] italic bg-white">
               <td className="border border-black p-0.5">1</td>
               <td className="border border-black p-0.5">2</td>
               <td className="border border-black p-0.5">3</td>
@@ -418,86 +420,104 @@ function CetakRekapBelanjaContent() {
                       pageBreakInside: "avoid",
                     }}
                   >
-                    <td className="border border-black p-1 text-left align-top">{row.kode}</td>
-                    <td className="border border-black p-1 text-left align-top">
+                    <td className="border border-black px-1.5 py-1 text-left align-top">{row.kode}</td>
+                    <td className="border border-black px-1.5 py-1 text-left align-top">
                       {row.uraian}
                     </td>
-                    <td className="border border-black p-1 text-right align-top">
+                    <td className="border border-black px-1.5 py-1 text-right align-top">
                       {formatCurrencyRupiah(row.jumlahAnggaran)}
                     </td>
                     {/* APBD */}
-                    <td className="border border-black p-1 text-right align-top">{formatCurrencyRupiah(row.apbdLalu)}</td>
-                    <td className="border border-black p-1 text-right align-top">{formatCurrencyRupiah(row.apbdIni)}</td>
-                    <td className="border border-black p-1 text-right align-top">{formatCurrencyRupiah(row.apbdSdIni)}</td>
+                    <td className="border border-black px-1 py-1 text-right align-top">{formatCurrencyRupiah(row.apbdLalu)}</td>
+                    <td className="border border-black px-1 py-1 text-right align-top">{formatCurrencyRupiah(row.apbdIni)}</td>
+                    <td className="border border-black px-1 py-1 text-right align-top">{formatCurrencyRupiah(row.apbdSdIni)}</td>
                     {/* BLUD */}
-                    <td className="border border-black p-1 text-right align-top">{formatCurrencyRupiah(row.bludLalu)}</td>
-                    <td className="border border-black p-1 text-right align-top">{formatCurrencyRupiah(row.bludIni)}</td>
-                    <td className="border border-black p-1 text-right align-top">{formatCurrencyRupiah(row.bludSdIni)}</td>
+                    <td className="border border-black px-1 py-1 text-right align-top">{formatCurrencyRupiah(row.bludLalu)}</td>
+                    <td className="border border-black px-1 py-1 text-right align-top">{formatCurrencyRupiah(row.bludIni)}</td>
+                    <td className="border border-black px-1 py-1 text-right align-top">{formatCurrencyRupiah(row.bludSdIni)}</td>
                     {/* BOK */}
-                    <td className="border border-black p-1 text-right align-top">{formatCurrencyRupiah(row.bokLalu)}</td>
-                    <td className="border border-black p-1 text-right align-top">{formatCurrencyRupiah(row.bokIni)}</td>
-                    <td className="border border-black p-1 text-right align-top">{formatCurrencyRupiah(row.bokSdIni)}</td>
+                    <td className="border border-black px-1 py-1 text-right align-top">{formatCurrencyRupiah(row.bokLalu)}</td>
+                    <td className="border border-black px-1 py-1 text-right align-top">{formatCurrencyRupiah(row.bokIni)}</td>
+                    <td className="border border-black px-1 py-1 text-right align-top">{formatCurrencyRupiah(row.bokSdIni)}</td>
                     {/* JKN */}
-                    <td className="border border-black p-1 text-right align-top">{formatCurrencyRupiah(row.jknLalu)}</td>
-                    <td className="border border-black p-1 text-right align-top">{formatCurrencyRupiah(row.jknIni)}</td>
-                    <td className="border border-black p-1 text-right align-top">{formatCurrencyRupiah(row.jknSdIni)}</td>
+                    <td className="border border-black px-1 py-1 text-right align-top">{formatCurrencyRupiah(row.jknLalu)}</td>
+                    <td className="border border-black px-1 py-1 text-right align-top">{formatCurrencyRupiah(row.jknIni)}</td>
+                    <td className="border border-black px-1 py-1 text-right align-top">{formatCurrencyRupiah(row.jknSdIni)}</td>
                     {/* TOTAL & SISA */}
-                    <td className="border border-black p-1 text-right align-top">{formatCurrencyRupiah(row.totalSpj)}</td>
-                    <td className="border border-black p-1 text-right align-top">{formatCurrencyRupiah(row.sisaAnggaran)}</td>
+                    <td className="border border-black px-1.5 py-1 text-right align-top">{formatCurrencyRupiah(row.totalSpj)}</td>
+                    <td className="border border-black px-1.5 py-1 text-right align-top">{formatCurrencyRupiah(row.sisaAnggaran)}</td>
                   </tr>
                 );
               })
             )}
           </tbody>
           <tfoot>
-            <tr className="font-bold text-center">
-              <td colSpan={2} className="border border-black p-1">
+            <tr className="font-bold text-center bg-white">
+              <td colSpan={2} className="border border-black px-2 py-1.5">
                 TOTAL
               </td>
-              <td className="border border-black p-1 text-right">
+              <td className="border border-black px-1.5 py-1.5 text-right">
                 {formatCurrencyRupiah(summary.grandAnggaran)}
               </td>
               {/* APBD */}
-              <td className="border border-black p-1 text-right">{formatCurrencyRupiah(summary.grandApbdLalu)}</td>
-              <td className="border border-black p-1 text-right">{formatCurrencyRupiah(summary.grandApbdIni)}</td>
-              <td className="border border-black p-1 text-right">{formatCurrencyRupiah(summary.grandApbdSdIni)}</td>
+              <td className="border border-black px-1 py-1.5 text-right">{formatCurrencyRupiah(summary.grandApbdLalu)}</td>
+              <td className="border border-black px-1 py-1.5 text-right">{formatCurrencyRupiah(summary.grandApbdIni)}</td>
+              <td className="border border-black px-1 py-1.5 text-right">{formatCurrencyRupiah(summary.grandApbdSdIni)}</td>
               {/* BLUD */}
-              <td className="border border-black p-1 text-right">{formatCurrencyRupiah(summary.grandBludLalu)}</td>
-              <td className="border border-black p-1 text-right">{formatCurrencyRupiah(summary.grandBludIni)}</td>
-              <td className="border border-black p-1 text-right">{formatCurrencyRupiah(summary.grandBludSdIni)}</td>
+              <td className="border border-black px-1 py-1.5 text-right">{formatCurrencyRupiah(summary.grandBludLalu)}</td>
+              <td className="border border-black px-1 py-1.5 text-right">{formatCurrencyRupiah(summary.grandBludIni)}</td>
+              <td className="border border-black px-1 py-1.5 text-right">{formatCurrencyRupiah(summary.grandBludSdIni)}</td>
               {/* BOK */}
-              <td className="border border-black p-1 text-right">{formatCurrencyRupiah(summary.grandBokLalu)}</td>
-              <td className="border border-black p-1 text-right">{formatCurrencyRupiah(summary.grandBokIni)}</td>
-              <td className="border border-black p-1 text-right">{formatCurrencyRupiah(summary.grandBokSdIni)}</td>
+              <td className="border border-black px-1 py-1.5 text-right">{formatCurrencyRupiah(summary.grandBokLalu)}</td>
+              <td className="border border-black px-1 py-1.5 text-right">{formatCurrencyRupiah(summary.grandBokIni)}</td>
+              <td className="border border-black px-1 py-1.5 text-right">{formatCurrencyRupiah(summary.grandBokSdIni)}</td>
               {/* JKN */}
-              <td className="border border-black p-1 text-right">{formatCurrencyRupiah(summary.grandJknLalu)}</td>
-              <td className="border border-black p-1 text-right">{formatCurrencyRupiah(summary.grandJknIni)}</td>
-              <td className="border border-black p-1 text-right">{formatCurrencyRupiah(summary.grandJknSdIni)}</td>
+              <td className="border border-black px-1 py-1.5 text-right">{formatCurrencyRupiah(summary.grandJknLalu)}</td>
+              <td className="border border-black px-1 py-1.5 text-right">{formatCurrencyRupiah(summary.grandJknIni)}</td>
+              <td className="border border-black px-1 py-1.5 text-right">{formatCurrencyRupiah(summary.grandJknSdIni)}</td>
               {/* TOTAL & SISA */}
-              <td className="border border-black p-1 text-right">{formatCurrencyRupiah(summary.grandTotalSpj)}</td>
-              <td className="border border-black p-1 text-right">{formatCurrencyRupiah(summary.grandSisaAnggaran)}</td>
+              <td className="border border-black px-1.5 py-1.5 text-right">{formatCurrencyRupiah(summary.grandTotalSpj)}</td>
+              <td className="border border-black px-1.5 py-1.5 text-right">{formatCurrencyRupiah(summary.grandSisaAnggaran)}</td>
             </tr>
           </tfoot>
         </table>
 
-        {/* Tanda Tangan Cetak */}
-        <div className="mt-8 grid grid-cols-2 text-center text-[10px] break-inside-avoid">
-          <div>
-            <p>Mengetahui,</p>
-            <p className="font-bold">{jabatanKpa}</p>
-            <div className="h-16" />
-            <p className="font-bold underline">{namaKpa}</p>
-            <p>{pangkatKpa}</p>
-            <p>NIP. {nipKpa}</p>
+        {/* Signature Area (Exact like BKU Rincian Objek & BKU Pajak) */}
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "1fr 1fr",
+            marginTop: "30px",
+            fontSize: "11px",
+            pageBreakInside: "avoid",
+          }}
+        >
+          {/* Mengetahui KPA */}
+          <div style={{ textAlign: "center" }}>
+            <p style={{ margin: "0 0 3px 0" }}>Mengetahui,</p>
+            <p style={{ fontWeight: "bold", textTransform: "uppercase", margin: 0 }}>
+              {jabatanKpa}
+            </p>
+            <div style={{ height: "65px" }} />
+            <p style={{ fontWeight: "bold", textDecoration: "underline", margin: "0 0 2px 0" }}>
+              {namaKpa}
+            </p>
+            <p style={{ margin: "0 0 2px 0" }}>{pangkatKpa}</p>
+            <p style={{ margin: 0 }}>NIP. {nipKpa}</p>
           </div>
 
-          <div>
-            <p>{tglTtdStr}</p>
-            <p className="font-bold">{jabatanBendahara}</p>
-            <div className="h-16" />
-            <p className="font-bold underline">{namaBendahara}</p>
-            <p>{pangkatBendahara}</p>
-            <p>NIP. {nipBendahara}</p>
+          {/* Bendahara Pengeluaran */}
+          <div style={{ textAlign: "center" }}>
+            <p style={{ margin: "0 0 3px 0" }}>{tglTtdStr}</p>
+            <p style={{ fontWeight: "bold", textTransform: "uppercase", margin: 0 }}>
+              {jabatanBendahara}
+            </p>
+            <div style={{ height: "65px" }} />
+            <p style={{ fontWeight: "bold", textDecoration: "underline", margin: "0 0 2px 0" }}>
+              {namaBendahara}
+            </p>
+            <p style={{ margin: "0 0 2px 0" }}>{pangkatBendahara}</p>
+            <p style={{ margin: 0 }}>NIP. {nipBendahara}</p>
           </div>
         </div>
       </div>

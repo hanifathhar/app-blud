@@ -1390,3 +1390,64 @@ model RincianLpj {
   @@map("tbl_rincian_lpj")
 }
 
+model TrhSp3b {
+  noSp3b           String    @map("no_sp3b") @db.VarChar(50)
+  tglSp3b          DateTime? @map("tgl_sp3b") @db.Date
+  ket              String?   @db.VarChar(100)
+  username         String?   @db.VarChar(50)
+  tglUpdate        DateTime? @map("tgl_update") @db.Timestamp(6)
+  kdUpt           String    @map("kd_upt") @db.VarChar(35)
+  nmUpt           String?   @map("nm_upt") @db.VarChar(225)
+  totalPendapatan  Decimal?  @map("total_pendapatan") @db.Decimal(18, 2)
+  totalBelanja     Decimal?  @map("total_belanja") @db.Decimal(18, 2)
+  sumdan           String?   @map("sumdan") @db.VarChar(50)
+  bulan            Int?
+  nolpj            String?   @map("no_lpj") @db.VarChar(100)
+  status           Int
+  verif            Int
+
+  pendapatan TrdSp3bPendapatan[]
+  belanja    TrdSp3bBelanja[]
+
+  @@id([noSp3b, kdUpt])
+  @@map("trhsp3b")
+}
+
+model TrdSp3bPendapatan {
+  noSp3b        String    @map("no_sp3b") @db.VarChar(100)
+  tglSp3b       DateTime? @map("tgl_sp3b") @db.Date
+  kdUpt        String    @map("kd_upt") @db.VarChar(50)
+  nmUpt        String?   @map("nm_upt") @db.VarChar(50)
+  kdSubKegiatan String    @map("kd_sub_kegiatan") @db.VarChar(50)
+  nmSubKegiatan String?   @map("nm_sub_kegiatan") @db.VarChar(225)
+  kdRek6        String    @map("kd_rek6") @db.VarChar(50)
+  nmRek6        String?   @map("nm_rek6") @db.VarChar(100)
+  nilai         Decimal?  @db.Decimal(18, 2)
+
+  trhSp3b       TrhSp3b   @relation(fields: [noSp3b, kdUpt], references: [noSp3b, kdUpt], onDelete: Cascade)
+
+  @@id([noSp3b, kdUpt, kdSubKegiatan, kdRek6])
+  @@index([noSp3b, kdUpt])
+  @@map("trdsp3b_pendapatan")
+}
+
+model TrdSp3bBelanja {
+  noSp3b        String    @map("no_sp3b") @db.VarChar(100)
+  tglSp3b       DateTime? @map("tgl_sp3b") @db.Date
+  kdUpt        String    @map("kd_upt") @db.VarChar(50)
+  nmUpt        String?   @map("nm_upt") @db.VarChar(50)
+  kdSubKegiatan String    @map("kd_sub_kegiatan") @db.VarChar(50)
+  nmSubKegiatan String?   @map("nm_sub_kegiatan") @db.VarChar(225)
+  kdRek6        String    @map("kd_rek6") @db.VarChar(50)
+  nmRek6        String?   @map("nm_rek6") @db.VarChar(100)
+  nilai         Decimal?  @db.Decimal(18, 2)
+
+  trhSp3b       TrhSp3b   @relation(fields: [noSp3b, kdUpt], references: [noSp3b, kdUpt], onDelete: Cascade)
+
+  @@id([noSp3b, kdUpt, kdSubKegiatan, kdRek6])
+  @@index([noSp3b, kdUpt])
+  @@map("trdsp3b_belanja")
+}
+
+
+

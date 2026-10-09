@@ -234,27 +234,27 @@ export async function GET(req: NextRequest) {
       let nmProg = kdProg ? progMap.get(kdProg) || "" : "";
       let nmGiat = kdGiat ? giatMap.get(kdGiat)?.nm || "" : "";
 
-      // Jika belum ditemukan di master, coba split pola standard (e.g. 1.01.01.2.22.0.00.01.2.01.01)
+      // Jika belum ditemukan di master, coba cari pola standar
       if (!kdProg && subKey.includes(".")) {
         const parts = subKey.split(".");
-        if (parts.length >= 7) {
-          kdProg = parts.slice(0, 7).join(".");
+        if (parts.length >= 3) {
+          kdProg = parts.slice(0, 3).join(".");
         }
-        if (parts.length >= 8) {
-          kdGiat = parts.slice(0, 8).join(".");
+        if (parts.length >= 4) {
+          kdGiat = parts.slice(0, 4).join(".");
         }
       }
 
-      if (!kdProg) kdProg = "1.01.01.2.22.0.00.01.00.00";
-      if (!kdGiat) kdGiat = `${kdProg}.01`;
+      if (!kdProg) kdProg = "1.02.01";
+      if (!kdGiat) kdGiat = `${kdProg}.2.01`;
 
       return {
         kdProg,
-        nmProg,
+        nmProg: nmProg || "PROGRAM PEMENUHAN UPAYA KESEHATAN PERORANGAN DAN UPAYA KESEHATAN MASYARAKAT",
         kdGiat,
-        nmGiat,
+        nmGiat: nmGiat || "Penyediaan Fasilitas Pelayanan Kesehatan untuk UKM dan UKP Kewenangan Daerah Kabupaten/Kota",
         kdSub: subKey || `${kdGiat}.01`,
-        nmSub: nmSub || meta?.nm || "Sub Kegiatan Belanja",
+        nmSub: nmSub || meta?.nm || "Pelayanan dan Penunjang Pelayanan BLUD",
       };
     };
 

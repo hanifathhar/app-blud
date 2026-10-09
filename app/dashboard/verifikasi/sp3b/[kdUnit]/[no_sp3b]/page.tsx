@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, use } from "react";
-import { ArrowLeft, Building, Calendar, FileText, ChevronDown, ChevronRight, Printer, ShieldCheck, Edit3, Check, X } from "lucide-react";
+import { ArrowLeft, Building, Calendar, FileText, ChevronDown, ChevronRight, Printer, ShieldCheck, Check } from "lucide-react";
 import { useRouter } from "next/navigation";
 
 const BULAN_NAMA = [
@@ -13,54 +13,35 @@ function formatRupiah(val: number) {
   return new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(val || 0);
 }
 
-function formatDateForInput(dateVal: any) {
-  if (!dateVal) return "";
-  const d = new Date(dateVal);
-  if (isNaN(d.getTime())) return "";
-  const yyyy = d.getFullYear();
-  const mm = String(d.getMonth() + 1).padStart(2, "0");
-  const dd = String(d.getDate()).padStart(2, "0");
-  return `${yyyy}-${mm}-${dd}`;
-}
-
-export default function LpjDetailPage({ params }: { params: Promise<{ kdUnit: string; no_lpj: string }> }) {
+export default function Sp3bDetailPage({ params }: { params: Promise<{ kdUnit: string; no_sp3b: string }> }) {
   const router = useRouter();
   const resolvedParams = use(params);
   const kdUnit = resolvedParams.kdUnit;
-  const no_lpj = decodeURIComponent(resolvedParams.no_lpj);
+  const no_sp3b = decodeURIComponent(resolvedParams.no_sp3b);
 
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState<any>(null);
   const [collapsedSub, setCollapsedSub] = useState<Record<string, boolean>>({});
 
-  // Edit Tanggal State
-  const [isEditingTgl, setIsEditingTgl] = useState(false);
-  const [editTglValue, setEditTglValue] = useState("");
-  const [savingTgl, setSavingTgl] = useState(false);
-  const [alertMsg, setAlertMsg] = useState<{ type: "success" | "error"; text: string } | null>(null);
-
   const toggleSub = (key: string) => {
-    setCollapsedSub(prev => ({
+    setCollapsedSub((prev) => ({
       ...prev,
-      [key]: !prev[key]
+      [key]: !prev[key],
     }));
   };
 
   const loadDetail = async () => {
     setLoading(true);
     try {
-      const res = await fetch(`/api/pelaporan/lpj/detail?kdUnit=${kdUnit}&no_lpj=${encodeURIComponent(no_lpj)}`);
+      const res = await fetch(`/api/verifikasi/sp3b/detail?kd_upt=${kdUnit}&no_sp3b=${encodeURIComponent(no_sp3b)}`);
       const result = await res.json();
       if (res.ok && result.success) {
         setData(result.data);
-        if (result.data.tgl_lpj) {
-          setEditTglValue(formatDateForInput(result.data.tgl_lpj));
-        }
       } else {
         setData(null);
       }
     } catch (e) {
-      console.error("Gagal memuat detail LPJ", e);
+      console.error("Gagal memuat detail SP3B", e);
     } finally {
       setLoading(false);
     }
@@ -68,57 +49,11 @@ export default function LpjDetailPage({ params }: { params: Promise<{ kdUnit: st
 
   useEffect(() => {
     loadDetail();
-  }, [kdUnit, no_lpj]);
-
-  const handleOpenEditTgl = () => {
-    setEditTglValue(formatDateForInput(data?.tgl_lpj) || new Date().toISOString().split("T")[0]);
-    setIsEditingTgl(true);
-    setAlertMsg(null);
-  };
-
-  const handleSaveTgl = async (e?: React.FormEvent) => {
-    if (e) e.preventDefault();
-    if (!editTglValue) {
-      setAlertMsg({ type: "error", text: "Tanggal tidak boleh kosong" });
-      return;
-    }
-
-    setSavingTgl(true);
-    setAlertMsg(null);
-    try {
-      const res = await fetch(`/api/pelaporan/lpj/detail`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          id: data?.id,
-          kdUnit,
-          no_lpj,
-          tgl_lpj: editTglValue,
-        }),
-      });
-
-      const result = await res.json();
-      if (res.ok && result.success) {
-        setData((prev: any) => ({
-          ...prev,
-          tgl_lpj: editTglValue,
-        }));
-        setIsEditingTgl(false);
-        setAlertMsg({ type: "success", text: "Tanggal pengesahan LPJ berhasil diperbarui!" });
-        setTimeout(() => setAlertMsg(null), 4000);
-      } else {
-        setAlertMsg({ type: "error", text: result.error || "Gagal memperbarui tanggal" });
-      }
-    } catch (err: any) {
-      setAlertMsg({ type: "error", text: err.message || "Terjadi kesalahan sistem" });
-    } finally {
-      setSavingTgl(false);
-    }
-  };
+  }, [kdUnit, no_sp3b]);
 
   const handleCetak = () => {
     if (!data) return;
-    window.open(`/dashboard/pelaporan/lpj/cetak?bulan=${data.bulan}&tahun=${data.tahun}&kd_upt=${data.kd_upt}&sumdan=${encodeURIComponent(data.sumdan || "")}`, "_blank");
+    window.open(`/dashboard/verifikasi/sp3b/cetak?no_sp3b=${encodeURIComponent(no_sp3b)}&kd_upt=${kdUnit}`, "_blank");
   };
 
   // Grouping rincian belanja per Sub Kegiatan
@@ -135,7 +70,7 @@ export default function LpjDetailPage({ params }: { params: Promise<{ kdUnit: st
         };
       }
       belanjaGrouped[subKey].items.push(b);
-      belanjaGrouped[subKey].total += Number(b.jumlah) || 0;
+      belanjaGrouped[subKey].total += Number(b.nilai) || 0;
     });
   }
 
@@ -144,49 +79,25 @@ export default function LpjDetailPage({ params }: { params: Promise<{ kdUnit: st
 
   return (
     <div className="animate-fadein relative">
-      {/* Alert Notification */}
-      {alertMsg && (
-        <div
-          style={{
-            padding: "12px 16px",
-            marginBottom: 16,
-            borderRadius: 8,
-            fontSize: 13,
-            fontWeight: 600,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            backgroundColor: alertMsg.type === "success" ? "#DCFCE7" : "#FEE2E2",
-            color: alertMsg.type === "success" ? "#166534" : "#991B1B",
-            border: `1px solid ${alertMsg.type === "success" ? "#86EFAC" : "#FCA5A5"}`,
-          }}
-        >
-          <span>{alertMsg.text}</span>
-          <button onClick={() => setAlertMsg(null)} style={{ background: "none", border: "none", cursor: "pointer", color: "inherit" }}>
-            <X size={16} />
-          </button>
-        </div>
-      )}
-
       {/* Header Bar */}
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 24, flexWrap: "wrap", gap: 16 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
           <button
-            onClick={() => router.push("/dashboard/pelaporan/lpj")}
+            onClick={() => router.push("/dashboard/verifikasi/sp3b")}
             style={{ display: "flex", alignItems: "center", justifyContent: "center", width: 40, height: 40, borderRadius: 8, border: "1px solid #E2E8F0", backgroundColor: "#fff", cursor: "pointer" }}
-            title="Kembali ke Daftar LPJ"
+            title="Kembali ke Daftar SP3B"
           >
             <ArrowLeft size={18} color="#475569" />
           </button>
           <div>
             <h1 style={{ fontSize: 22, fontWeight: 800, color: "#0F172A", display: "flex", alignItems: "center", gap: 8 }}>
-              Detail Pengesahan LPJ
-              <span style={{ backgroundColor: "#DCFCE7", color: "#166534", padding: "4px 8px", borderRadius: 4, fontSize: 11, fontWeight: 600, display: "inline-flex", alignItems: "center", gap: 4 }}>
-                <ShieldCheck size={13} /> {data?.status?.toUpperCase() || "DISAHKAN"}
+              Detail Dokumen SP3B
+              <span style={{ backgroundColor: "#DCFCE7", color: "#166534", padding: "4px 10px", borderRadius: 6, fontSize: 12, fontWeight: 700, display: "inline-flex", alignItems: "center", gap: 5 }}>
+                <ShieldCheck size={14} /> TERVERIFIKASI DINAS
               </span>
             </h1>
             <div style={{ fontSize: 14, color: "#64748B", marginTop: 4 }}>
-              Nomor: <span style={{ fontFamily: "monospace", fontWeight: 700, color: "#0F172A" }}>{no_lpj}</span>
+              Nomor SP3B: <span style={{ fontFamily: "monospace", fontWeight: 700, color: "#0F172A" }}>{no_sp3b}</span>
             </div>
           </div>
         </div>
@@ -198,15 +109,14 @@ export default function LpjDetailPage({ params }: { params: Promise<{ kdUnit: st
             disabled={!data}
             style={{ display: "inline-flex", alignItems: "center", gap: 8, backgroundColor: "#fff" }}
           >
-            <Printer size={16} /> Cetak Dokumen SPTJ
+            <Printer size={16} /> Cetak Dokumen SP3B
           </button>
         </div>
       </div>
 
-      {/* Form Input Header / Dokumen Pengesahan Dinamis */}
+      {/* Form Informasi Dokumen SP3B */}
       {data && (
         <div className="card" style={{ marginBottom: 24, overflow: "hidden", border: "1px solid #E2E8F0", borderRadius: 12 }}>
-          {/* Top Banner Header */}
           <div
             style={{
               padding: "16px 24px",
@@ -225,27 +135,20 @@ export default function LpjDetailPage({ params }: { params: Promise<{ kdUnit: st
               </div>
               <div>
                 <h2 style={{ fontSize: 16, fontWeight: 800, color: "#0F172A", margin: 0 }}>
-                  Informasi Dokumen Pengesahan LPJ
+                  Informasi Surat Permintaan Pengesahan Pendapatan & Belanja
                 </h2>
                 <div style={{ fontSize: 12, color: "#64748B", marginTop: 2 }}>
-                  Detail status pengesahan dan transaksi Surat Pertanggungjawaban (SPTJ)
+                  Dokumen legal pengesahan pendapatan & belanja BLUD UPT oleh Dinas Kesehatan
                 </div>
               </div>
             </div>
-
-            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-              <span style={{ backgroundColor: "#DCFCE7", color: "#15803D", padding: "6px 14px", borderRadius: 20, fontSize: 12, fontWeight: 700, display: "inline-flex", alignItems: "center", gap: 6, border: "1px solid #BBF7D0" }}>
-                <ShieldCheck size={15} /> {data.status?.toUpperCase() || "DISAHKAN"}
-              </span>
-            </div>
           </div>
 
-          {/* Grid Informasi Form Interaktif & Dinamis */}
           <div style={{ padding: "20px 24px", backgroundColor: "#FFFFFF" }}>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(12, 1fr)", gap: 16 }}>
-              {/* Unit Kerja (UPT) - Col 6 */}
+              {/* Unit Kerja */}
               <div style={{ gridColumn: "span 6", minWidth: 260 }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11, fontWeight: 700, color: "#64748B", marginBottom: 6, textTransform: "uppercase", letterSpacing: "0.5px" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11, fontWeight: 700, color: "#64748B", marginBottom: 6, textTransform: "uppercase" }}>
                   <Building size={13} color="#2563EB" /> Unit Kerja (UPT)
                 </div>
                 <div style={{ padding: "10px 14px", borderRadius: 8, backgroundColor: "#F8FAFC", border: "1px solid #E2E8F0" }}>
@@ -254,88 +157,72 @@ export default function LpjDetailPage({ params }: { params: Promise<{ kdUnit: st
                 </div>
               </div>
 
-              {/* Nomor Dokumen LPJ - Col 6 */}
+              {/* Ref LPJ */}
               <div style={{ gridColumn: "span 6", minWidth: 260 }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11, fontWeight: 700, color: "#64748B", marginBottom: 6, textTransform: "uppercase", letterSpacing: "0.5px" }}>
-                  <FileText size={13} color="#2563EB" /> Nomor Dokumen Pengesahan
+                <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11, fontWeight: 700, color: "#64748B", marginBottom: 6, textTransform: "uppercase" }}>
+                  <FileText size={13} color="#2563EB" /> Referensi Dokumen LPJ (UPT)
                 </div>
                 <div style={{ padding: "10px 14px", borderRadius: 8, backgroundColor: "#F8FAFC", border: "1px solid #E2E8F0" }}>
-                  <div style={{ fontSize: 13.5, fontWeight: 700, color: "#0F172A", fontFamily: "monospace", wordBreak: "break-all" }}>{no_lpj}</div>
-                  <div style={{ fontSize: 11, color: "#166534", fontWeight: 600, marginTop: 2 }}>Tervalidasi Sistem</div>
+                  <div style={{ fontSize: 13.5, fontWeight: 700, color: "#0F172A", fontFamily: "monospace", wordBreak: "break-all" }}>
+                    {data.no_lpj || "-"}
+                  </div>
+                  <div style={{ fontSize: 11, color: "#15803D", fontWeight: 600, marginTop: 2 }}>Dokumen Terkunci dari UPT</div>
                 </div>
               </div>
 
-              {/* Periode LPJ - Col 3 */}
+              {/* Periode SP3B */}
               <div style={{ gridColumn: "span 3", minWidth: 160 }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11, fontWeight: 700, color: "#64748B", marginBottom: 6, textTransform: "uppercase", letterSpacing: "0.5px" }}>
-                  <Calendar size={13} color="#2563EB" /> Periode LPJ
+                <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11, fontWeight: 700, color: "#64748B", marginBottom: 6, textTransform: "uppercase" }}>
+                  <Calendar size={13} color="#2563EB" /> Periode SP3B
                 </div>
                 <div style={{ padding: "10px 14px", borderRadius: 8, backgroundColor: "#F8FAFC", border: "1px solid #E2E8F0" }}>
                   <div style={{ fontSize: 13.5, fontWeight: 700, color: "#0F172A" }}>{BULAN_NAMA[data.bulan]}</div>
-                  <div style={{ fontSize: 11, color: "#64748B", marginTop: 2 }}>Tahun Anggaran {data.tahun}</div>
+                  <div style={{ fontSize: 11, color: "#64748B", marginTop: 2 }}>Bulan ke-{data.bulan}</div>
                 </div>
               </div>
 
-              {/* Sumber Dana - Col 3 */}
+              {/* Tanggal SP3B */}
               <div style={{ gridColumn: "span 3", minWidth: 160 }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11, fontWeight: 700, color: "#64748B", marginBottom: 6, textTransform: "uppercase", letterSpacing: "0.5px" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11, fontWeight: 700, color: "#64748B", marginBottom: 6, textTransform: "uppercase" }}>
+                  <Calendar size={13} color="#2563EB" /> Tanggal Dokumen
+                </div>
+                <div style={{ padding: "10px 14px", borderRadius: 8, backgroundColor: "#F8FAFC", border: "1px solid #E2E8F0" }}>
+                  <div style={{ fontSize: 13.5, fontWeight: 700, color: "#0F172A" }}>
+                    {data.tgl_sp3b ? new Date(data.tgl_sp3b).toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" }) : "-"}
+                  </div>
+                  <div style={{ fontSize: 11, color: "#64748B", marginTop: 2 }}>Tanggal Terbit SP3B</div>
+                </div>
+              </div>
+
+              {/* Sumber Dana */}
+              <div style={{ gridColumn: "span 3", minWidth: 160 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11, fontWeight: 700, color: "#64748B", marginBottom: 6, textTransform: "uppercase" }}>
                   <FileText size={13} color="#2563EB" /> Sumber Dana
                 </div>
                 <div style={{ padding: "10px 14px", borderRadius: 8, backgroundColor: "#EFF6FF", border: "1px solid #DBEAFE" }}>
-                  <div style={{ fontSize: 13.5, fontWeight: 700, color: "#1E40AF" }}>{data.sumdan || "Semua Sumber Dana"}</div>
-                  <div style={{ fontSize: 11, color: "#3B82F6", marginTop: 2 }}>Rekening Kas BLUD</div>
+                  <div style={{ fontSize: 13.5, fontWeight: 700, color: "#1E40AF" }}>{data.sumdan || "Semua Dana"}</div>
+                  <div style={{ fontSize: 11, color: "#3B82F6", marginTop: 2 }}>Kas BLUD</div>
                 </div>
               </div>
 
-              {/* Tanggal Pengesahan (Editable Field) - Col 3 */}
-              <div style={{ gridColumn: "span 3", minWidth: 180 }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11, fontWeight: 700, color: "#1E293B", marginBottom: 6, textTransform: "uppercase", letterSpacing: "0.5px" }}>
-                  <Calendar size={13} color="#2563EB" /> Tanggal Pengesahan <span style={{ color: "#EF4444" }}>*</span>
-                </div>
-                <div style={{ position: "relative" }}>
-                  <input
-                    type="date"
-                    value={editTglValue}
-                    onChange={(e) => setEditTglValue(e.target.value)}
-                    style={{
-                      width: "100%",
-                      padding: "9px 12px",
-                      borderRadius: 8,
-                      border: "1.5px solid #3B82F6",
-                      backgroundColor: "#FFFFFF",
-                      color: "#0F172A",
-                      fontSize: 13,
-                      fontWeight: 700,
-                      outline: "none",
-                      boxShadow: "0 0 0 3px rgba(59, 130, 246, 0.12)",
-                      cursor: "pointer",
-                    }}
-                    required
-                  />
-                </div>
-                <div style={{ fontSize: 11, color: "#2563EB", marginTop: 4, fontWeight: 500 }}>
-                  Dapat diubah & diupdate langsung
-                </div>
-              </div>
-
-              {/* Disahkan Oleh - Col 3 */}
+              {/* Verifikator */}
               <div style={{ gridColumn: "span 3", minWidth: 160 }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11, fontWeight: 700, color: "#64748B", marginBottom: 6, textTransform: "uppercase", letterSpacing: "0.5px" }}>
-                  <ShieldCheck size={13} color="#2563EB" /> Verifikator Pengesahan
+                <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11, fontWeight: 700, color: "#64748B", marginBottom: 6, textTransform: "uppercase" }}>
+                  <ShieldCheck size={13} color="#2563EB" /> Petugas Verifikator
                 </div>
                 <div style={{ padding: "10px 14px", borderRadius: 8, backgroundColor: "#F8FAFC", border: "1px solid #E2E8F0" }}>
-                  <div style={{ fontSize: 13.5, fontWeight: 700, color: "#0F172A" }}>{data.disahkan_oleh || "Subag Keuangan"}</div>
-                  <div style={{ fontSize: 11, color: "#64748B", marginTop: 2 }}>Subag Keuangan / Kasubag</div>
+                  <div style={{ fontSize: 13.5, fontWeight: 700, color: "#0F172A" }}>{data.username || "Dinas Kesehatan"}</div>
+                  <div style={{ fontSize: 11, color: "#64748B", marginTop: 2 }}>Verifikator Dinkes</div>
                 </div>
               </div>
 
-              {/* Catatan / Keterangan - Col 12 */}
+              {/* Uraian / Keterangan */}
               <div style={{ gridColumn: "span 12" }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11, fontWeight: 700, color: "#64748B", marginBottom: 6, textTransform: "uppercase", letterSpacing: "0.5px" }}>
-                  <FileText size={13} color="#2563EB" /> Catatan / Uraian Pengesahan
+                <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11, fontWeight: 700, color: "#64748B", marginBottom: 6, textTransform: "uppercase" }}>
+                  <FileText size={13} color="#2563EB" /> Catatan / Uraian SP3B
                 </div>
                 <div style={{ padding: "10px 14px", borderRadius: 8, backgroundColor: "#F8FAFC", border: "1px solid #E2E8F0", fontSize: 13, color: "#334155", fontWeight: 500 }}>
-                  {data.keterangan || "Pengesahan Surat Pertanggungjawaban (SPTJ) Realisasi Pendapatan dan Belanja BLUD"}
+                  {data.ket || "-"}
                 </div>
               </div>
             </div>
@@ -343,16 +230,16 @@ export default function LpjDetailPage({ params }: { params: Promise<{ kdUnit: st
         </div>
       )}
 
-      {/* Tabel 1: Rincian Pendapatan BLUD */}
+      {/* Tabel 1: Rincian Pendapatan SP3B */}
       <div className="card" style={{ marginBottom: 24 }}>
         <div className="card-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 12, backgroundColor: "#F0FDF4", borderBottom: "1px solid #BBF7D0" }}>
           <div>
             <span className="card-title" style={{ color: "#166534", display: "flex", alignItems: "center", gap: 8 }}>
               <span style={{ backgroundColor: "#DCFCE7", padding: "2px 8px", borderRadius: 4, fontSize: 11, fontWeight: 700 }}>4.x.x</span>
-              Rincian Pendapatan BLUD
+              Rincian Pengesahan Pendapatan SP3B
             </span>
             <div style={{ fontSize: 12, color: "#15803D", marginTop: 2 }}>
-              {rincianPendapatan.length} Rekening Pendapatan Terealisasi
+              {rincianPendapatan.length} Rekening Pendapatan Disahkan
             </div>
           </div>
           <div style={{ textAlign: "right" }}>
@@ -364,22 +251,22 @@ export default function LpjDetailPage({ params }: { params: Promise<{ kdUnit: st
         {loading ? (
           <div className="empty-state" style={{ padding: 36 }}><div className="loading-spinner" /></div>
         ) : !data ? (
-          <div className="empty-state" style={{ padding: 36, fontSize: 13, color: "#64748B" }}>Data dokumen LPJ tidak ditemukan.</div>
+          <div className="empty-state" style={{ padding: 36, fontSize: 13, color: "#64748B" }}>Data dokumen SP3B tidak ditemukan.</div>
         ) : (
           <div style={{ overflowX: "auto" }}>
             <table style={{ width: "100%", borderCollapse: "collapse" }}>
               <thead style={{ backgroundColor: "#F8FAFC" }}>
                 <tr>
-                  <th style={{ padding: "10px 16px", fontSize: 11, fontWeight: 700, color: "#1E293B", textTransform: "uppercase", textAlign: "center", width: 140, borderBottom: "1px solid #E2E8F0" }}>Kode Rekening</th>
+                  <th style={{ padding: "10px 16px", fontSize: 11, fontWeight: 700, color: "#1E293B", textTransform: "uppercase", textAlign: "center", width: 150, borderBottom: "1px solid #E2E8F0" }}>Kode Rekening</th>
                   <th style={{ padding: "10px 16px", fontSize: 11, fontWeight: 700, color: "#1E293B", textTransform: "uppercase", textAlign: "left", borderBottom: "1px solid #E2E8F0" }}>Uraian Rekening Pendapatan</th>
-                  <th style={{ padding: "10px 16px", fontSize: 11, fontWeight: 700, color: "#1E293B", textTransform: "uppercase", textAlign: "right", width: 220, borderBottom: "1px solid #E2E8F0" }}>Jumlah (Rp)</th>
+                  <th style={{ padding: "10px 16px", fontSize: 11, fontWeight: 700, color: "#1E293B", textTransform: "uppercase", textAlign: "right", width: 220, borderBottom: "1px solid #E2E8F0" }}>Jumlah Pengesahan (Rp)</th>
                 </tr>
               </thead>
               <tbody>
                 {rincianPendapatan.length === 0 ? (
                   <tr>
                     <td colSpan={3} style={{ padding: "24px 16px", fontSize: 12, color: "#94A3B8", fontStyle: "italic", textAlign: "center" }}>
-                      Tidak ada transaksi penerimaan pendapatan (Nihil)
+                      Tidak ada transaksi pendapatan (Nihil)
                     </td>
                   </tr>
                 ) : (
@@ -390,10 +277,9 @@ export default function LpjDetailPage({ params }: { params: Promise<{ kdUnit: st
                       </td>
                       <td style={{ padding: "10px 16px", fontSize: 12, verticalAlign: "top" }}>
                         <div style={{ fontWeight: 600, color: "#0F172A" }}>{p.nm_rek6}</div>
-                        {p.keterangan && <div style={{ fontSize: 11, color: "#64748B", marginTop: 2 }}>{p.keterangan}</div>}
                       </td>
                       <td style={{ padding: "10px 16px", fontSize: 12.5, color: "#10B981", fontWeight: 700, textAlign: "right", verticalAlign: "top" }}>
-                        {formatRupiah(p.jumlah)}
+                        {formatRupiah(p.nilai)}
                       </td>
                     </tr>
                   ))
@@ -402,7 +288,7 @@ export default function LpjDetailPage({ params }: { params: Promise<{ kdUnit: st
               <tfoot>
                 <tr style={{ backgroundColor: "#F0FDF4", borderTop: "2px solid #BBF7D0", fontWeight: 800 }}>
                   <td colSpan={2} style={{ padding: "12px 16px", fontSize: 12.5, color: "#166534", textTransform: "uppercase" }}>
-                    Total Realisasi Pendapatan
+                    Total Realisasi Pendapatan Disahkan
                   </td>
                   <td style={{ padding: "12px 16px", fontSize: 13.5, color: "#166534", textAlign: "right" }}>
                     {formatRupiah(data.total_pendapatan || 0)}
@@ -414,16 +300,16 @@ export default function LpjDetailPage({ params }: { params: Promise<{ kdUnit: st
         )}
       </div>
 
-      {/* Tabel 2: Rincian Belanja BLUD */}
+      {/* Tabel 2: Rincian Belanja SP3B */}
       <div className="card" style={{ marginBottom: 24 }}>
         <div className="card-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 12, backgroundColor: "#EFF6FF", borderBottom: "1px solid #BFDBFE" }}>
           <div>
             <span className="card-title" style={{ color: "#1E40AF", display: "flex", alignItems: "center", gap: 8 }}>
               <span style={{ backgroundColor: "#DBEAFE", padding: "2px 8px", borderRadius: 4, fontSize: 11, fontWeight: 700 }}>5.x.x</span>
-              Rincian Belanja BLUD
+              Rincian Pengesahan Belanja SP3B
             </span>
             <div style={{ fontSize: 12, color: "#1D4ED8", marginTop: 2 }}>
-              {subKegiatanList.length} Sub Kegiatan Terverifikasi
+              {subKegiatanList.length} Sub Kegiatan Disahkan
             </div>
           </div>
           <div style={{ textAlign: "right" }}>
@@ -435,7 +321,7 @@ export default function LpjDetailPage({ params }: { params: Promise<{ kdUnit: st
         {loading ? (
           <div className="empty-state" style={{ padding: 36 }}><div className="loading-spinner" /></div>
         ) : !data ? (
-          <div className="empty-state" style={{ padding: 36, fontSize: 13, color: "#64748B" }}>Data dokumen LPJ tidak ditemukan.</div>
+          <div className="empty-state" style={{ padding: 36, fontSize: 13, color: "#64748B" }}>Data dokumen SP3B tidak ditemukan.</div>
         ) : (
           <div style={{ overflowX: "auto" }}>
             <table style={{ width: "100%", borderCollapse: "collapse" }}>
@@ -443,7 +329,7 @@ export default function LpjDetailPage({ params }: { params: Promise<{ kdUnit: st
                 <tr>
                   <th style={{ padding: "10px 16px", fontSize: 11, fontWeight: 700, color: "#1E293B", textTransform: "uppercase", textAlign: "center", width: 140, borderBottom: "1px solid #E2E8F0" }}>Kode</th>
                   <th colSpan={2} style={{ padding: "10px 16px", fontSize: 11, fontWeight: 700, color: "#1E293B", textTransform: "uppercase", textAlign: "left", borderBottom: "1px solid #E2E8F0" }}>Uraian Sub Kegiatan / Rekening Belanja</th>
-                  <th style={{ padding: "10px 16px", fontSize: 11, fontWeight: 700, color: "#1E293B", textTransform: "uppercase", textAlign: "right", width: 220, borderBottom: "1px solid #E2E8F0" }}>Jumlah (Rp)</th>
+                  <th style={{ padding: "10px 16px", fontSize: 11, fontWeight: 700, color: "#1E293B", textTransform: "uppercase", textAlign: "right", width: 220, borderBottom: "1px solid #E2E8F0" }}>Jumlah Pengesahan (Rp)</th>
                 </tr>
               </thead>
               <tbody>
@@ -458,7 +344,7 @@ export default function LpjDetailPage({ params }: { params: Promise<{ kdUnit: st
                     const isCollapsed = collapsedSub[sub.kd_sub_kegiatan] || false;
                     return (
                       <React.Fragment key={`sub-${sIdx}`}>
-                        {/* Sub Kegiatan Header (Baris Induk) */}
+                        {/* Sub Kegiatan Header */}
                         <tr
                           onClick={() => toggleSub(sub.kd_sub_kegiatan)}
                           style={{ backgroundColor: "#F8FAFC", borderBottom: "1px solid #CBD5E1", cursor: "pointer" }}
@@ -481,7 +367,7 @@ export default function LpjDetailPage({ params }: { params: Promise<{ kdUnit: st
                           </td>
                         </tr>
 
-                        {/* Rincian Rekening Belanja di bawah Sub Kegiatan */}
+                        {/* Rincian Rekening Belanja */}
                         {!isCollapsed &&
                           sub.items.map((b: any, bIdx: number) => (
                             <tr key={`sub-${sIdx}-item-${bIdx}`} style={{ borderBottom: "1px solid #E2E8F0", backgroundColor: "#FFFFFF" }} className="hover:bg-slate-50/50">
@@ -493,10 +379,9 @@ export default function LpjDetailPage({ params }: { params: Promise<{ kdUnit: st
                               </td>
                               <td style={{ padding: "10px 16px", fontSize: 12, verticalAlign: "top", paddingLeft: 0 }}>
                                 <div style={{ fontWeight: 600, color: "#0F172A" }}>{b.nm_rek6}</div>
-                                {b.keterangan && <div style={{ fontSize: 11, color: "#64748B", marginTop: 2 }}>{b.keterangan}</div>}
                               </td>
                               <td style={{ padding: "10px 16px", fontSize: 12, color: "#2563EB", fontWeight: 700, textAlign: "right", verticalAlign: "top" }}>
-                                {formatRupiah(b.jumlah)}
+                                {formatRupiah(b.nilai)}
                               </td>
                             </tr>
                           ))}
@@ -508,7 +393,7 @@ export default function LpjDetailPage({ params }: { params: Promise<{ kdUnit: st
               <tfoot>
                 <tr style={{ backgroundColor: "#EFF6FF", borderTop: "2px solid #BFDBFE", fontWeight: 800 }}>
                   <td colSpan={3} style={{ padding: "12px 16px", fontSize: 12.5, color: "#1E40AF", textTransform: "uppercase" }}>
-                    Total Realisasi Belanja
+                    Total Realisasi Belanja Disahkan
                   </td>
                   <td style={{ padding: "12px 16px", fontSize: 13.5, color: "#1E40AF", textAlign: "right" }}>
                     {formatRupiah(data.total_belanja || 0)}
@@ -520,7 +405,7 @@ export default function LpjDetailPage({ params }: { params: Promise<{ kdUnit: st
         )}
       </div>
 
-      {/* Action Footer Bar di Bawah */}
+      {/* Action Bar di Bawah */}
       {data && (
         <div
           className="card"
@@ -536,40 +421,28 @@ export default function LpjDetailPage({ params }: { params: Promise<{ kdUnit: st
           }}
         >
           <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, color: "#64748B" }}>
-
+            <span>Total Transaksi Disahkan:</span>
+            <span style={{ fontSize: 16, fontWeight: 800, color: "#0F172A" }}>
+              {formatRupiah((data.total_pendapatan || 0) + (data.total_belanja || 0))}
+            </span>
           </div>
 
           <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
             <button
               type="button"
               className="btn btn-outline"
-              onClick={() => router.push("/dashboard/pelaporan/lpj")}
+              onClick={() => router.push("/dashboard/verifikasi/sp3b")}
               style={{ padding: "8px 18px", fontSize: 13, backgroundColor: "#fff" }}
             >
               Kembali
             </button>
-
             <button
               type="button"
-              onClick={handleSaveTgl}
-              disabled={savingTgl}
-              style={{
-                display: "inline-flex",
-                alignItems: "center",
-                gap: 8,
-                padding: "8px 22px",
-                borderRadius: 6,
-                backgroundColor: "#2563EB",
-                color: "#FFFFFF",
-                fontSize: 13,
-                fontWeight: 700,
-                border: "none",
-                cursor: savingTgl ? "not-allowed" : "pointer",
-                boxShadow: "0 2px 4px rgba(37, 99, 235, 0.2)",
-              }}
+              className="btn btn-primary"
+              onClick={handleCetak}
+              style={{ padding: "8px 20px", fontSize: 13, display: "inline-flex", alignItems: "center", gap: 8 }}
             >
-              <Check size={16} />
-              {savingTgl ? "Menyimpan Perubahan..." : "Update Tanggal Pengesahan"}
+              <Printer size={15} /> Cetak Dokumen SP3B
             </button>
           </div>
         </div>

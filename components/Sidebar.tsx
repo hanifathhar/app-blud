@@ -111,6 +111,15 @@ const menus: MenuItem[] = [
     ],
   },
   {
+    label: "Verifikasi",
+    href: "#",
+    icon: <Receipt size={17} />,
+    roles: ["superadmin"],
+    children: [
+      { label: "SP3B", href: "/dashboard/verifikasi/sp3b", roles: ["superadmin"] },
+    ],
+  },
+  {
     label: "Monitoring",
     href: "/dashboard/monitoring",
     icon: <Monitor size={17} />,

@@ -302,12 +302,12 @@ export default function RekapBelanjaPage() {
             </h3>
           </div>
 
-          {/* Metadata Parameters Table */}
+          {/* Metadata Parameters Table (Exact like BKU Rincian Objek) */}
           <div style={{ width: "100%", marginBottom: 14, fontSize: 11 }}>
             <table style={{ width: "100%", borderCollapse: "collapse" }}>
               <tbody>
                 <tr>
-                  <td style={{ width: 220, padding: "2px 0", verticalAlign: "top" }}>SKPD/UPT</td>
+                  <td style={{ width: 240, padding: "2px 0", verticalAlign: "top" }}>Unit/UPT</td>
                   <td style={{ width: 15, padding: "2px 0", verticalAlign: "top" }}>:</td>
                   <td style={{ padding: "2px 0", verticalAlign: "top" }}>
                     {data.upt?.kd_upt ? `${data.upt?.kd_upt} - ${data.upt?.nm_upt}` : "1.02.5.02.0.00.02.00 - Puskesmas Batang Toru"}
@@ -345,14 +345,14 @@ export default function RekapBelanjaPage() {
           <div style={{ overflowX: "auto" }}>
             <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 10, border: "1px solid #000" }}>
               <thead>
-                <tr style={{ background: "#fff", textAlign: "center" }}>
-                  <th rowSpan={2} style={{ border: "1px solid #000", padding: "6px 4px", width: 140, fontWeight: "bold" }}>
+                <tr style={{ background: "#f8fafc", textAlign: "center" }}>
+                  <th rowSpan={2} style={{ border: "1px solid #000", padding: "6px 4px", width: 125, fontWeight: "bold" }}>
                     KODE<br />REKENING
                   </th>
-                  <th rowSpan={2} style={{ border: "1px solid #000", padding: "6px 6px", minWidth: 240, fontWeight: "bold" }}>
+                  <th rowSpan={2} style={{ border: "1px solid #000", padding: "6px 8px", minWidth: 220, fontWeight: "bold" }}>
                     URAIAN
                   </th>
-                  <th rowSpan={2} style={{ border: "1px solid #000", padding: "6px 6px", width: 110, fontWeight: "bold" }}>
+                  <th rowSpan={2} style={{ border: "1px solid #000", padding: "6px 6px", width: 105, fontWeight: "bold" }}>
                     JUMLAH<br />ANGGARAN<br />(Rp)
                   </th>
                   <th colSpan={3} style={{ border: "1px solid #000", padding: "4px", fontWeight: "bold" }}>
@@ -367,32 +367,32 @@ export default function RekapBelanjaPage() {
                   <th colSpan={3} style={{ border: "1px solid #000", padding: "4px", fontWeight: "bold" }}>
                     JKN
                   </th>
-                  <th rowSpan={2} style={{ border: "1px solid #000", padding: "6px 6px", width: 120, fontWeight: "bold" }}>
-                    TOTAL SPJ<br />(APBD+BLUD+BOK+JKN)<br />(Rp)
+                  <th rowSpan={2} style={{ border: "1px solid #000", padding: "6px 6px", width: 115, fontWeight: "bold" }}>
+                    TOTAL SPJ<br />(APBD+BLUD+<br />BOK+JKN) (Rp)
                   </th>
-                  <th rowSpan={2} style={{ border: "1px solid #000", padding: "6px 6px", width: 110, fontWeight: "bold" }}>
+                  <th rowSpan={2} style={{ border: "1px solid #000", padding: "6px 6px", width: 105, fontWeight: "bold" }}>
                     SISA ANGGARAN<br />(Rp)
                   </th>
                 </tr>
-                <tr style={{ background: "#fff", textAlign: "center", fontSize: 9 }}>
+                <tr style={{ background: "#f8fafc", textAlign: "center", fontSize: 9 }}>
                   {/* APBD */}
-                  <th style={{ border: "1px solid #000", padding: "4px 2px", width: 85, fontWeight: "bold" }}>S/D. BULAN LALU</th>
-                  <th style={{ border: "1px solid #000", padding: "4px 2px", width: 80, fontWeight: "bold" }}>BULAN INI</th>
-                  <th style={{ border: "1px solid #000", padding: "4px 2px", width: 85, fontWeight: "bold" }}>S/D. BULAN INI</th>
+                  <th style={{ border: "1px solid #000", padding: "4px 2px", width: 75, fontWeight: "bold" }}>S/D. BULAN LALU</th>
+                  <th style={{ border: "1px solid #000", padding: "4px 2px", width: 75, fontWeight: "bold" }}>BULAN INI</th>
+                  <th style={{ border: "1px solid #000", padding: "4px 2px", width: 75, fontWeight: "bold" }}>S/D. BULAN INI</th>
                   {/* BLUD */}
-                  <th style={{ border: "1px solid #000", padding: "4px 2px", width: 85, fontWeight: "bold" }}>S/D. BULAN LALU</th>
-                  <th style={{ border: "1px solid #000", padding: "4px 2px", width: 80, fontWeight: "bold" }}>BULAN INI</th>
-                  <th style={{ border: "1px solid #000", padding: "4px 2px", width: 85, fontWeight: "bold" }}>S/D. BULAN INI</th>
+                  <th style={{ border: "1px solid #000", padding: "4px 2px", width: 75, fontWeight: "bold" }}>S/D. BULAN LALU</th>
+                  <th style={{ border: "1px solid #000", padding: "4px 2px", width: 75, fontWeight: "bold" }}>BULAN INI</th>
+                  <th style={{ border: "1px solid #000", padding: "4px 2px", width: 75, fontWeight: "bold" }}>S/D. BULAN INI</th>
                   {/* BOK */}
-                  <th style={{ border: "1px solid #000", padding: "4px 2px", width: 85, fontWeight: "bold" }}>S/D. BULAN LALU</th>
-                  <th style={{ border: "1px solid #000", padding: "4px 2px", width: 80, fontWeight: "bold" }}>BULAN INI</th>
-                  <th style={{ border: "1px solid #000", padding: "4px 2px", width: 85, fontWeight: "bold" }}>S/D. BULAN INI</th>
+                  <th style={{ border: "1px solid #000", padding: "4px 2px", width: 75, fontWeight: "bold" }}>S/D. BULAN LALU</th>
+                  <th style={{ border: "1px solid #000", padding: "4px 2px", width: 75, fontWeight: "bold" }}>BULAN INI</th>
+                  <th style={{ border: "1px solid #000", padding: "4px 2px", width: 75, fontWeight: "bold" }}>S/D. BULAN INI</th>
                   {/* JKN */}
-                  <th style={{ border: "1px solid #000", padding: "4px 2px", width: 85, fontWeight: "bold" }}>S/D. BULAN LALU</th>
-                  <th style={{ border: "1px solid #000", padding: "4px 2px", width: 80, fontWeight: "bold" }}>BULAN INI</th>
-                  <th style={{ border: "1px solid #000", padding: "4px 2px", width: 85, fontWeight: "bold" }}>S/D. BULAN INI</th>
+                  <th style={{ border: "1px solid #000", padding: "4px 2px", width: 75, fontWeight: "bold" }}>S/D. BULAN LALU</th>
+                  <th style={{ border: "1px solid #000", padding: "4px 2px", width: 75, fontWeight: "bold" }}>BULAN INI</th>
+                  <th style={{ border: "1px solid #000", padding: "4px 2px", width: 75, fontWeight: "bold" }}>S/D. BULAN INI</th>
                 </tr>
-                <tr style={{ background: "#fff", textAlign: "center", fontSize: 9 }}>
+                <tr style={{ background: "#f1f5f9", textAlign: "center", fontSize: 8.5, fontStyle: "italic" }}>
                   <th style={{ border: "1px solid #000", padding: "2px" }}>1</th>
                   <th style={{ border: "1px solid #000", padding: "2px" }}>2</th>
                   <th style={{ border: "1px solid #000", padding: "2px" }}>3</th>
@@ -550,23 +550,23 @@ export default function RekapBelanjaPage() {
             </table>
           </div>
 
-          {/* Footer Signature Layout */}
+          {/* Signature Area (Exact like BKU Rincian Objek) */}
           <div
             style={{
               display: "grid",
               gridTemplateColumns: "1fr 1fr",
-              marginTop: 35,
+              marginTop: 30,
               fontSize: 11,
-              color: "#000",
+              pageBreakInside: "avoid",
             }}
           >
             {/* Kiri: Mengetahui KPA */}
             <div style={{ textAlign: "center" }}>
-              <p style={{ margin: "0 0 4px 0" }}>Mengetahui,</p>
+              <p style={{ margin: "0 0 3px 0" }}>Mengetahui,</p>
               <p style={{ fontWeight: "bold", textTransform: "uppercase", margin: 0 }}>
                 {data.penandatanganKpa?.jabatan || "Pengguna/Kuasa Pengguna Anggaran"}
               </p>
-              <div style={{ height: 65 }} />
+              <div style={{ height: "65px" }} />
               <p style={{ fontWeight: "bold", textDecoration: "underline", margin: "0 0 2px 0" }}>
                 {data.penandatanganKpa?.nama || "dr. SRI KHAIRUNNISA, MH, MKM"}
               </p>
@@ -580,11 +580,11 @@ export default function RekapBelanjaPage() {
 
             {/* Kanan: Bendahara Pengeluaran */}
             <div style={{ textAlign: "center" }}>
-              <p style={{ margin: "0 0 4px 0" }}>{tglTtdStr}</p>
+              <p style={{ margin: "0 0 3px 0" }}>{tglTtdStr}</p>
               <p style={{ fontWeight: "bold", textTransform: "uppercase", margin: 0 }}>
                 {data.penandatanganBendahara?.jabatan || "Bendahara Pengeluaran"}
               </p>
-              <div style={{ height: 65 }} />
+              <div style={{ height: "65px" }} />
               <p style={{ fontWeight: "bold", textDecoration: "underline", margin: "0 0 2px 0" }}>
                 {data.penandatanganBendahara?.nama || "SANLY MELISKA, S.K.M."}
               </p>
