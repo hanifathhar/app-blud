@@ -311,7 +311,7 @@ export default function Sp3bPage() {
       </div>
 
       {/* Filter Card */}
-      <div className="card" style={{ marginBottom: 24, padding: "16px 20px" }}>
+      <div className="card" style={{ marginBottom: 24, padding: "16px 20px", position: "relative", zIndex: 10 }}>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 16, alignItems: "flex-end" }}>
           <div>
             <label style={{ display: "block", fontSize: 12, fontWeight: 700, color: "#475569", marginBottom: 6, textTransform: "uppercase" }}>
@@ -326,8 +326,12 @@ export default function Sp3bPage() {
                 setFilterUpt(v?.value || "");
                 setPage(1);
               }}
+              menuPortalTarget={typeof window !== "undefined" ? document.body : null}
+              menuPosition="fixed"
               styles={{
                 control: (b) => ({ ...b, minHeight: 38, borderRadius: 6, borderColor: "#CBD5E1" }),
+                menuPortal: (b) => ({ ...b, zIndex: 99999 }),
+                menu: (b) => ({ ...b, zIndex: 99999 }),
               }}
             />
           </div>

@@ -9,6 +9,7 @@ export const KODE_JABATAN_MAP: Record<number, string> = {
   4: "Bendahara Penerimaan",
   5: "Bendahara Pengeluaran",
   6: "Pengurus Barang Pengguna",
+  7: "Kepala Dinas Kesehatan",
 };
 
 // GET all / filtered Penandatangan
@@ -135,8 +136,8 @@ export async function POST(req: NextRequest) {
     }
 
     const kodeNum = parseInt(kode || "1");
-    if (isNaN(kodeNum) || kodeNum < 1 || kodeNum > 6) {
-      return NextResponse.json({ error: "Kode penandatangan harus antara 1 sampai 6" }, { status: 400 });
+    if (isNaN(kodeNum) || kodeNum < 1 || kodeNum > 7) {
+      return NextResponse.json({ error: "Kode penandatangan harus antara 1 sampai 7" }, { status: 400 });
     }
 
     // Default nama jabatan jika tidak diisi
@@ -146,8 +147,12 @@ export async function POST(req: NextRequest) {
 
     // Cari nama UPT jika belum ada
     if (!nm_upt) {
-      const upt = await prisma.msUpt.findFirst({ where: { kd_upt } });
-      if (upt) nm_upt = upt.nm_upt;
+      if (kd_upt === "DINKES") {
+        nm_upt = "Dinas Kesehatan Daerah";
+      } else {
+        const upt = await prisma.msUpt.findFirst({ where: { kd_upt } });
+        if (upt) nm_upt = upt.nm_upt;
+      }
     }
 
     const created = await prisma.penandatangan.create({
@@ -203,10 +208,16 @@ export async function PUT(req: NextRequest) {
     }
 
     const kodeNum = kode !== undefined ? parseInt(kode) : existing.kode;
+    if (isNaN(kodeNum) || kodeNum < 1 || kodeNum > 7) {
+      return NextResponse.json({ error: "Kode penandatangan harus antara 1 sampai 7" }, { status: 400 });
+    }
     const finalJabatan = jabatan ? jabatan.trim() : KODE_JABATAN_MAP[kodeNum] || existing.jabatan;
 
     let finalNmUpt = nm_upt;
-    if (kd_upt && (!finalNmUpt || kd_upt !== existing.kd_upt)) {
+    const targetKdUpt = kd_upt || existing.kd_upt;
+    if (targetKdUpt === "DINKES" && !finalNmUpt) {
+      finalNmUpt = "Dinas Kesehatan Daerah";
+    } else if (kd_upt && (!finalNmUpt || kd_upt !== existing.kd_upt)) {
       const upt = await prisma.msUpt.findFirst({ where: { kd_upt } });
       if (upt) finalNmUpt = upt.nm_upt;
     }

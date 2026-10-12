@@ -32,6 +32,7 @@ const JABATAN_OPTIONS = [
   { kode: 4, label: "Bendahara Penerimaan", short: "Bendahara Penerimaan", color: "#8B5CF6", bg: "#F5F3FF", border: "#DDD6FE" },
   { kode: 5, label: "Bendahara Pengeluaran", short: "Bendahara Pengeluaran", color: "#EF4444", bg: "#FEF2F2", border: "#FECACA" },
   { kode: 6, label: "Pengurus Barang Pengguna", short: "Pengurus Barang", color: "#06B6D4", bg: "#ECFEFF", border: "#A5F3FC" },
+  { kode: 7, label: "Kepala Dinas Kesehatan", short: "Kepala Dinas", color: "#0D9488", bg: "#F0FDFA", border: "#99F6E4" },
 ];
 
 export default function MasterPenandatangananPage() {
@@ -83,7 +84,18 @@ export default function MasterPenandatangananPage() {
 
     fetch("/api/upt")
       .then((r) => r.json())
-      .then((d) => setUpts(d.data || []));
+      .then((d) => {
+        const listUpt = (d.data || []) as UPT[];
+        const hasDinkes = listUpt.some((u) => u.kd_upt === "DINKES");
+        if (!hasDinkes) {
+          listUpt.unshift({
+            id: 0,
+            kd_upt: "DINKES",
+            nm_upt: "Dinas Kesehatan Daerah",
+          });
+        }
+        setUpts(listUpt);
+      });
   }, []);
 
   const loadData = () => {
@@ -148,10 +160,13 @@ export default function MasterPenandatangananPage() {
 
   const handleKodeChange = (kodeVal: number) => {
     const matched = JABATAN_OPTIONS.find((j) => j.kode === kodeVal);
+    const isKadis = kodeVal === 7;
     setForm((prev) => ({
       ...prev,
       kode: kodeVal,
       jabatan: matched ? matched.label : prev.jabatan,
+      kd_upt: isKadis && (!prev.kd_upt || prev.kd_upt === "") ? "DINKES" : prev.kd_upt,
+      nm_upt: isKadis && (!prev.kd_upt || prev.kd_upt === "") ? "Dinas Kesehatan Daerah" : prev.nm_upt,
     }));
   };
 

@@ -1313,12 +1313,12 @@ model PotonganPengeluaran {
 }
 
 /// Master Penandatangan Dokumen per UPT
-/// kode: 1=KPA, 2=PPTK, 3=Subag Keuangan, 4=Bendahara Penerimaan, 5=Bendahara Pengeluaran
+/// kode: 1=KPA, 2=PPTK, 3=Subag Keuangan, 4=Bendahara Penerimaan, 5=Bendahara Pengeluaran, 6=Pengurus Barang Pengguna, 7=Kepala Dinas Kesehatan
 model Penandatangan {
   id               Int      @id @default(autoincrement())
   kd_upt           String   @db.VarChar(50)
   nm_upt           String?  @db.VarChar(255)
-  kode             Int      @default(1) // 1=KPA, 2=PPTK, 3=Subag Keuangan, 4=Bendahara Penerimaan, 5=Bendahara Pengeluaran
+  kode             Int      @default(1) // 1=KPA, 2=PPTK, 3=Subag Keuangan, 4=Bendahara Penerimaan, 5=Bendahara Pengeluaran, 6=Pengurus Barang Pengguna, 7=Kepala Dinas Kesehatan
   jabatan          String   @db.VarChar(100) // Nama jabatan / keterangan jabatan
   nama             String   @db.VarChar(150)
   nip              String?  @db.VarChar(50)

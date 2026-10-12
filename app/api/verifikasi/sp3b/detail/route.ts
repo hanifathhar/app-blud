@@ -52,6 +52,27 @@ export async function GET(req: Request) {
       kd_upt
     );
 
+    // Ambil data Penandatangan Kepala Dinas Kesehatan (kode: 7 / DINKES) untuk kebutuhan report SP3B
+    let penandatanganKadis = await prisma.penandatangan.findFirst({
+      where: {
+        kode: 7,
+        status: 1,
+      },
+      orderBy: { id: "desc" },
+    });
+
+    if (!penandatanganKadis) {
+      penandatanganKadis = await prisma.penandatangan.findFirst({
+        where: {
+          OR: [
+            { kd_upt: "DINKES", status: 1 },
+            { jabatan: { contains: "Kepala Dinas", mode: "insensitive" }, status: 1 },
+          ],
+        },
+        orderBy: { id: "desc" },
+      });
+    }
+
     return NextResponse.json({
       success: true,
       data: {
@@ -68,6 +89,11 @@ export async function GET(req: Request) {
           nilai: Number(b.nilai) || 0,
         })),
         upt,
+        penandatanganKadis: penandatanganKadis || null,
+        nm_kadis: penandatanganKadis?.nama || "dr. SRI KHAIRUNNISA, MH, MKM",
+        nip_kadis: penandatanganKadis?.nip || "197112262002122008",
+        pangkat_kadis: penandatanganKadis?.pangkat_golongan || "",
+        jabatan_kadis: penandatanganKadis?.jabatan || "KEPALA DINAS KESEHATAN DAERAH",
       },
     });
   } catch (error: any) {
