@@ -880,6 +880,7 @@ model TblSilpa {
   tahun             String    @db.VarChar(4)
   kd_rek6           String    @db.VarChar(50)
   nm_rek6           String    @db.VarChar(100)
+  sumdan            String?   @db.VarChar(50)
   nilai             Decimal   @default(0.00) @db.Decimal(18,2)
   status            String    @default("draft") // draft, ditetapkan
   nomor_penetapan   String?   @db.VarChar(100)
@@ -888,7 +889,7 @@ model TblSilpa {
   tgl_dibuat        DateTime  @default(now())
   tgl_update        DateTime? @updatedAt
 
-  @@unique([kd_upt, tahun, kd_rek6])
+  @@unique([kd_upt, tahun, kd_rek6, sumdan])
   @@map("tbl_silpa")
 }
 

@@ -151,64 +151,73 @@ export async function POST(req: Request) {
     // Otomatis tetapkan SILPA di tahun dan UPT yang sama
     const tahunRba = rbas[0]?.tahun || "";
     
-    // Fetch draft/active SILPA
-    const silpas = await prisma.tblSilpa.findMany({
-      where: { kd_upt: kdUnit, tahun: tahunRba }
-    });
+    // Fetch draft/active SILPA via raw query agar kolom sumdan selalu terbaca dengan akurat
+    const silpas: any[] = await prisma.$queryRawUnsafe(
+      `SELECT * FROM "tbl_silpa" WHERE "kd_upt" = $1 AND "tahun" = $2`,
+      kdUnit,
+      tahunRba
+    );
 
-    const silpaPenetapanTx = silpas.filter((s: any) => Number(s.nilai) > 0).map((s: any) => {
-      return prisma.tblRbaPenetapan.create({
-        data: {
-          no_rba: `RBA-${kdUnit}-SILPA-${s.kd_rek6}`,
-          nomor_penetapan,
-          tanggal_penetapan: tanggal_penetapan ? new Date(tanggal_penetapan) : null,
-          keterangan,
-          kdUnit: s.kd_upt,
-          nmUnit: s.nm_upt,
-          tahun: s.tahun,
-          kdSubKegiatan: '0.00.00.0.01.01',
-          nmSubKegiatan: 'PEMBIAYAAN',
-          noPuk: `${s.kd_upt}0.00.00.0.01.01`,
-          kd_rek6: s.kd_rek6,
-          nm_rek6: s.nm_rek6,
-          nilai: s.nilai,
-          rincian: {
-            create: [
-              {
-                tanggal_penetapan: tanggal_penetapan ? new Date(tanggal_penetapan) : null,
-                keterangan,
-                kdUnit: s.kd_upt,
-                nmUnit: s.nm_upt,
-                tahun: s.tahun,
-                kdSubKegiatan: '0.00.00.0.01.01',
-                nmSubKegiatan: 'PEMBIAYAAN',
-                noPuk: `${s.kd_upt}0.00.00.0.01.01`,
-                kd_rek6: s.kd_rek6,
-                nm_rek6: s.nm_rek6,
-                uraian: s.nm_rek6,
-                volume: 1,
-                satuan: 'Tahun',
-                nilai: s.nilai,
-                total: s.nilai,
-              }
-            ]
+    const silpaPenetapanTx = silpas
+      .filter((s: any) => Number(s.nilai) > 0)
+      .map((s: any, idx: number) => {
+        const sumdanName = (s.sumdan || `SUMDAN-${idx + 1}`).trim().toUpperCase();
+        const no_rba = `RBA-${kdUnit}-SILPA-${s.kd_rek6}-${sumdanName}`;
+        return prisma.tblRbaPenetapan.create({
+          data: {
+            no_rba,
+            nomor_penetapan,
+            tanggal_penetapan: tanggal_penetapan ? new Date(tanggal_penetapan) : null,
+            keterangan,
+            kdUnit: s.kd_upt,
+            nmUnit: s.nm_upt,
+            tahun: s.tahun,
+            sumdan: sumdanName,
+            kdSubKegiatan: '0.00.00.0.01.01',
+            nmSubKegiatan: 'PEMBIAYAAN',
+            noPuk: `${s.kd_upt}0.00.00.0.01.01`,
+            kd_rek6: s.kd_rek6,
+            nm_rek6: s.nm_rek6,
+            nilai: Number(s.nilai) || 0,
+            rincian: {
+              create: [
+                {
+                  tanggal_penetapan: tanggal_penetapan ? new Date(tanggal_penetapan) : null,
+                  keterangan,
+                  kdUnit: s.kd_upt,
+                  nmUnit: s.nm_upt,
+                  tahun: s.tahun,
+                  sumdan: sumdanName,
+                  kdSubKegiatan: '0.00.00.0.01.01',
+                  nmSubKegiatan: 'PEMBIAYAAN',
+                  noPuk: `${s.kd_upt}0.00.00.0.01.01`,
+                  kd_rek6: s.kd_rek6,
+                  nm_rek6: s.nm_rek6,
+                  uraian: `${s.nm_rek6} (${sumdanName})`,
+                  volume: 1,
+                  satuan: 'Tahun',
+                  nilai: Number(s.nilai) || 0,
+                  total: Number(s.nilai) || 0,
+                }
+              ]
+            }
           }
-        }
+        });
       });
-    });
 
     await prisma.$transaction([...tx, ...silpaPenetapanTx]);
 
-    // Update status TblSilpa
+    // Update status TblSilpa menjadi ditetapkan
     if (tahunRba) {
-      await prisma.tblSilpa.updateMany({
-        where: { kd_upt: kdUnit, tahun: tahunRba, status: "draft" },
-        data: {
-          status: "ditetapkan",
-          nomor_penetapan,
-          tanggal_penetapan: tanggal_penetapan ? new Date(tanggal_penetapan) : null
-        }
-      });
+      await prisma.$executeRawUnsafe(
+        `UPDATE "tbl_silpa" 
+         SET "status" = 'ditetapkan', "nomor_penetapan" = $1, "tanggal_penetapan" = $2, "tgl_update" = NOW()
+         WHERE "kd_upt" = $3 AND "tahun" = $4`,
+        nomor_penetapan,
+        tanggal_penetapan ? new Date(tanggal_penetapan) : null,
+        kdUnit,
+        tahunRba
+      );
     }
 
     return NextResponse.json({ success: true, message: `Berhasil memposting ${rbas.length} RBA` });

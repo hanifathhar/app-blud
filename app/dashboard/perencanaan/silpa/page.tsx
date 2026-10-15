@@ -9,10 +9,18 @@ import withReactContent from "sweetalert2-react-content";
 
 const MySwal = withReactContent(Swal);
 
-const DEFAULT_SILPA_CODES = [
-  { kd_rek6: "6.1.01.08.01.0001", nm_rek6: "Sisa Lebih Perhitungan Anggaran BLUD", nilai: 0 },
-  { kd_rek6: "6.1.01.08.03.0001", nm_rek6: "Sisa Dana Kapitasi", nilai: 0 },
-  { kd_rek6: "6.1.01.01.04.0018", nm_rek6: "Pelampauan Penerimaan PAD-Pendapatan Dana Kapitasi JKN pada FKTP", nilai: 0 },
+interface SilpaItem {
+  kd_rek6: string;
+  nm_rek6: string;
+  sumdan: string;
+  nilai: number;
+}
+
+const DEFAULT_SILPA_CODES: SilpaItem[] = [
+  { kd_rek6: "6.1.01.08.01.0001", nm_rek6: "Sisa Lebih Perhitungan Anggaran BLUD", sumdan: "BLUD", nilai: 0 },
+  { kd_rek6: "6.1.01.08.01.0001", nm_rek6: "Sisa Lebih Perhitungan Anggaran BLUD", sumdan: "APBD", nilai: 0 },
+  { kd_rek6: "6.1.01.08.01.0001", nm_rek6: "Sisa Lebih Perhitungan Anggaran BLUD", sumdan: "BOK", nilai: 0 },
+  { kd_rek6: "6.1.01.08.01.0001", nm_rek6: "Sisa Lebih Perhitungan Anggaran BLUD", sumdan: "JKN", nilai: 0 },
 ];
 
 export default function SilpaPage() {
@@ -21,7 +29,7 @@ export default function SilpaPage() {
   const [saving, setSaving] = useState(false);
   const [user, setUser] = useState<any>(null);
   
-  const [silpaData, setSilpaData] = useState(DEFAULT_SILPA_CODES.map(d => ({ ...d })));
+  const [silpaData, setSilpaData] = useState<SilpaItem[]>(DEFAULT_SILPA_CODES.map(d => ({ ...d })));
   const [status, setStatus] = useState("draft");
 
   // Superadmin UPT Selection
@@ -65,9 +73,11 @@ export default function SilpaPage() {
     try {
       const res = await fetch(`/api/perencanaan/silpa?kdUnit=${kdUnit}&tahun=${tahun}`);
       const d = await res.json();
-      if (d.success && d.data.length > 0) {
+      if (d.success && d.data && d.data.length > 0) {
         const merged = DEFAULT_SILPA_CODES.map(def => {
-          const found = d.data.find((item: any) => item.kd_rek6 === def.kd_rek6);
+          const found = d.data.find((item: any) => 
+            item.kd_rek6 === def.kd_rek6 && (item.sumdan || "").toUpperCase() === def.sumdan.toUpperCase()
+          );
           if (found) {
             setStatus(found.status);
             return { ...def, nilai: Number(found.nilai) };
@@ -119,7 +129,7 @@ export default function SilpaPage() {
       });
       const d = await res.json();
       if (d.success) {
-        MySwal.fire({ icon: 'success', title: 'Berhasil', text: "Data berhasil disimpan" });
+        MySwal.fire({ icon: 'success', title: 'Berhasil', text: "Data SILPA berhasil disimpan" });
         fetchData(kd_upt, user.tahun);
       } else {
         MySwal.fire({ icon: 'error', title: 'Gagal', text: d.message });
@@ -211,6 +221,21 @@ export default function SilpaPage() {
     return new Intl.NumberFormat('id-ID').format(val);
   };
 
+  const getSumdanBadgeStyle = (sumdan: string) => {
+    switch (sumdan.toUpperCase()) {
+      case 'BLUD':
+        return { backgroundColor: '#ECFDF5', color: '#047857', borderColor: '#A7F3D0' };
+      case 'APBD':
+        return { backgroundColor: '#EFF6FF', color: '#1D4ED8', borderColor: '#BFDBFE' };
+      case 'BOK':
+        return { backgroundColor: '#FFFBEB', color: '#B45309', borderColor: '#FDE68A' };
+      case 'JKN':
+        return { backgroundColor: '#F5F3FF', color: '#6D28D9', borderColor: '#DDD6FE' };
+      default:
+        return { backgroundColor: '#F1F5F9', color: '#475569', borderColor: '#CBD5E1' };
+    }
+  };
+
   const formLabelStyle = { fontWeight: 600, color: "#334155", fontSize: 13, marginBottom: 6, display: "block" };
   const formInputStyle = { background: "#F8FAFC", width: "100%", fontSize: 13, borderRadius: 6, border: "1px solid #E2E8F0", padding: "8px 12px" };
   const sectionTitleStyle = { fontSize: 14, fontWeight: 700, color: "#0F172A", marginBottom: 12, paddingBottom: 8, borderBottom: "1px solid #E2E8F0" };
@@ -232,6 +257,9 @@ export default function SilpaPage() {
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 24 }}>
         <div>
           <h1 style={{ fontSize: 22, fontWeight: 800, color: "#0F172A" }}>💼 Input SILPA Tahun Lalu</h1>
+          <p style={{ fontSize: 13, color: "#64748B", marginTop: 4 }}>
+            Kelola saldo awal SILPA per sumber dana (BLUD, APBD, BOK, JKN) untuk sinkronisasi LPJ dan SP3B
+          </p>
         </div>
       </div>
 
@@ -297,40 +325,58 @@ export default function SilpaPage() {
               <>
                 {/* Rincian SILPA */}
                 <div>
-                  <h3 style={sectionTitleStyle}>Rincian Anggaran</h3>
+                  <h3 style={sectionTitleStyle}>Rincian Anggaran SILPA Menurut Sumber Dana</h3>
                   <table className="tbl" style={{ marginTop: 0 }}>
                     <thead>
                       <tr>
                         <th style={{ width: "20%" }}>Kode Rekening</th>
-                        <th style={{ width: "50%" }}>Uraian</th>
-                        <th style={{ width: "30%", textAlign: "right" }}>Nilai (Rp)</th>
+                        <th style={{ width: "42%" }}>Uraian Rekening</th>
+                        <th style={{ width: "16%", textAlign: "center" }}>Sumber Dana</th>
+                        <th style={{ width: "22%", textAlign: "right" }}>Nilai (Rp)</th>
                       </tr>
                     </thead>
                     <tbody>
-                      {silpaData.map((item, index) => (
-                        <tr key={item.kd_rek6}>
-                          <td style={{ fontSize: 13, color: "#334155", fontWeight: 600 }}>{item.kd_rek6}</td>
-                          <td style={{ fontSize: 13, color: "#334155" }}>{item.nm_rek6}</td>
-                          <td style={{ textAlign: "right" }}>
-                            {isDitetapkan ? (
-                              <div style={{ fontSize: 13, fontWeight: 700, color: "#0F172A", padding: "8px 12px" }}>
-                                {formatCurrency(item.nilai)}
-                              </div>
-                            ) : (
-                              <input
-                                type="text"
-                                style={{ ...formInputStyle, textAlign: "right", fontWeight: 600, color: "#0F172A" }}
-                                value={formatCurrency(item.nilai)}
-                                onChange={(e) => handleNilaiChange(index, e.target.value)}
-                              />
-                            )}
-                          </td>
-                        </tr>
-                      ))}
+                      {silpaData.map((item, index) => {
+                        const badge = getSumdanBadgeStyle(item.sumdan);
+                        return (
+                          <tr key={`${item.kd_rek6}-${item.sumdan}`}>
+                            <td style={{ fontSize: 13, color: "#334155", fontWeight: 600 }}>{item.kd_rek6}</td>
+                            <td style={{ fontSize: 13, color: "#334155" }}>{item.nm_rek6}</td>
+                            <td style={{ textAlign: "center" }}>
+                              <span style={{
+                                display: "inline-block",
+                                padding: "3px 10px",
+                                borderRadius: "9999px",
+                                fontSize: 12,
+                                fontWeight: 700,
+                                border: `1px solid ${badge.borderColor}`,
+                                backgroundColor: badge.backgroundColor,
+                                color: badge.color
+                              }}>
+                                {item.sumdan}
+                              </span>
+                            </td>
+                            <td style={{ textAlign: "right" }}>
+                              {isDitetapkan ? (
+                                <div style={{ fontSize: 13, fontWeight: 700, color: "#0F172A", padding: "8px 12px" }}>
+                                  {formatCurrency(item.nilai)}
+                                </div>
+                              ) : (
+                                <input
+                                  type="text"
+                                  style={{ ...formInputStyle, textAlign: "right", fontWeight: 600, color: "#0F172A" }}
+                                  value={formatCurrency(item.nilai)}
+                                  onChange={(e) => handleNilaiChange(index, e.target.value)}
+                                />
+                              )}
+                            </td>
+                          </tr>
+                        );
+                      })}
                     </tbody>
                     <tfoot>
                       <tr>
-                        <td colSpan={2} style={{ textAlign: "right", fontWeight: 700, fontSize: 14, color: "#0F172A" }}>TOTAL SILPA:</td>
+                        <td colSpan={3} style={{ textAlign: "right", fontWeight: 700, fontSize: 14, color: "#0F172A" }}>TOTAL SILPA:</td>
                         <td style={{ textAlign: "right", fontWeight: 800, fontSize: 15, color: "#0F172A", padding: "12px" }}>
                           Rp {formatCurrency(totalSilpa)}
                         </td>

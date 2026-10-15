@@ -9,11 +9,12 @@ export async function GET(req: Request) {
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const { searchParams } = new URL(req.url);
+  const userLoginTahun = user?.tahun ? parseInt(user.tahun) : null;
   const bulanParam = searchParams.get("bulan");
   const tahunParam = searchParams.get("tahun");
   const now = new Date();
   const bulan = bulanParam ? parseInt(bulanParam) : now.getMonth() + 1;
-  const tahun = tahunParam ? parseInt(tahunParam) : now.getFullYear();
+  const tahun = (userLoginTahun && !isNaN(userLoginTahun)) ? userLoginTahun : (tahunParam ? parseInt(tahunParam) : now.getFullYear());
   const tahunStr = tahun.toString();
   const sumdanFilter = searchParams.get("sumdan") || "";
 
@@ -169,6 +170,44 @@ export async function GET(req: Request) {
 
     const sumberDanaList = Array.from(sumdanSet);
 
+    // Hitung Saldo Awal berdasarkan SILPA per Sumber Dana
+    const targetSumdan = sumdanFilter || existingLpj?.sumdan || "";
+    let silpaRows: any[] = [];
+    if (targetSumdan) {
+      silpaRows = await prisma.$queryRawUnsafe(
+        `SELECT COALESCE(SUM(nilai), 0) as total 
+         FROM "tbl_silpa" 
+         WHERE "kd_upt" = $1 AND "tahun" = $2 AND ("sumdan" ILIKE $3 OR $3 ILIKE '%' || "sumdan" || '%')`,
+        kd_upt,
+        tahunStr,
+        targetSumdan
+      );
+    } else {
+      silpaRows = await prisma.$queryRawUnsafe(
+        `SELECT COALESCE(SUM(nilai), 0) as total 
+         FROM "tbl_silpa" 
+         WHERE "kd_upt" = $1 AND "tahun" = $2`,
+        kd_upt,
+        tahunStr
+      );
+    }
+    const silpaAwal = Number(silpaRows[0]?.total) || 0;
+
+    // Akumulasi LPJ bulan-bulan sebelumnya di tahun yang sama
+    const prevLpjRows: any[] = await prisma.$queryRawUnsafe(
+      `SELECT COALESCE(SUM(total_pendapatan - total_belanja), 0) as prev_net
+       FROM "tbl_lpj"
+       WHERE "kd_upt" = $1 
+         AND "tahun" = $2
+         AND "bulan" < $3
+         ${targetSumdan ? `AND ("sumdan" ILIKE '%${targetSumdan.replace(/'/g, "''")}%' OR '${targetSumdan.replace(/'/g, "''")}' ILIKE '%' || "sumdan" || '%')` : ''}`,
+      kd_upt,
+      tahunStr,
+      bulan
+    );
+    const prevNetLpj = Number(prevLpjRows[0]?.prev_net) || 0;
+    const saldoAwal = silpaAwal + prevNetLpj;
+
     // Jika sudah ada LPJ yang disahkan dan datanya diminta
     if (existingLpj && existingLpj.status === "disahkan") {
       const rincianPendapatan = (existingLpj.rincian || [])
@@ -192,14 +231,20 @@ export async function GET(req: Request) {
           jumlah: Number(r.jumlah) || 0,
         }));
 
+      const totPend = Number(existingLpj.total_pendapatan) || 0;
+      const totBel = Number(existingLpj.total_belanja) || 0;
+
       return NextResponse.json({
         success: true,
         lpj: existingLpj,
         isDisahkan: true,
         rincianPendapatan,
         rincianBelanja,
-        totalPendapatan: Number(existingLpj.total_pendapatan) || 0,
-        totalBelanja: Number(existingLpj.total_belanja) || 0,
+        totalPendapatan: totPend,
+        totalBelanja: totBel,
+        saldoAwal,
+        silpaAwal,
+        saldoAkhir: saldoAwal + totPend - totBel,
         sumberDanaList,
         publishedLpjList,
         pagination: {
@@ -299,6 +344,9 @@ export async function GET(req: Request) {
       rincianBelanja,
       totalPendapatan,
       totalBelanja,
+      saldoAwal,
+      silpaAwal,
+      saldoAkhir: saldoAwal + totalPendapatan - totalBelanja,
       sumberDanaList,
       publishedLpjList,
       pagination: {

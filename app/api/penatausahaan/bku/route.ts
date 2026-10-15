@@ -8,37 +8,54 @@ export async function GET(req: Request) {
   const user = getUserFromRequest(req);
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
+  const userLoginTahun = user?.tahun ? parseInt(user.tahun) : null;
   const { searchParams } = new URL(req.url);
   const bulan = searchParams.get("bulan");
-  const tahun = searchParams.get("tahun");
+  const tahunParam = searchParams.get("tahun");
   const kd_upt = searchParams.get("kd_upt") || user.kd_upt;
 
   const bulanNum = bulan ? parseInt(bulan) : null;
-  const tahunNum = tahun ? parseInt(tahun) : null;
+  const tahunNum = (userLoginTahun && !isNaN(userLoginTahun)) ? userLoginTahun : (tahunParam ? parseInt(tahunParam) : null);
+  const targetKdUpt = user.role !== "superadmin" ? (user.kd_upt || "") : (kd_upt || "");
 
   const where: Record<string, unknown> = {};
   if (bulanNum) where.bulan = bulanNum;
   if (tahunNum) where.tahun = tahunNum;
-  if (user.role !== "superadmin") where.kd_upt = user.kd_upt;
-  else if (kd_upt) where.kd_upt = kd_upt;
+  if (targetKdUpt) where.kd_upt = targetKdUpt;
 
-  // Hitung Saldo Awal Bulan Lalu (akumulasi debet - kredit sebelum bulan ini pada tahun berjalan)
-  let saldoAwal = 0;
+  // 1. Ambil SILPA Tahun Lalu dari tbl_silpa untuk UPT dan Tahun ini
+  let silpaTahunLalu = 0;
+  if (tahunNum) {
+    const silpaWhere: any = {
+      tahun: String(tahunNum),
+    };
+    if (targetKdUpt) silpaWhere.kd_upt = targetKdUpt;
+
+    const silpaRows = await prisma.tblSilpa.findMany({
+      where: silpaWhere,
+      select: { nilai: true },
+    });
+    silpaTahunLalu = silpaRows.reduce((acc, curr) => acc + Number(curr.nilai || 0), 0);
+  }
+
+  // 2. Hitung Saldo Awal (SILPA Tahun Lalu + akumulasi transaksi debet - kredit bulan-bulan sebelum bulan ini pada tahun berjalan)
+  let prevAccumulated = 0;
   if (bulanNum && tahunNum) {
     const prevWhere: any = {
       tahun: tahunNum,
       bulan: { lt: bulanNum },
     };
-    if (user.role !== "superadmin") prevWhere.kd_upt = user.kd_upt;
-    else if (kd_upt) prevWhere.kd_upt = kd_upt;
+    if (targetKdUpt) prevWhere.kd_upt = targetKdUpt;
 
     const prevData = await prisma.bKU.findMany({
       where: prevWhere,
       select: { debet: true, kredit: true },
     });
 
-    saldoAwal = prevData.reduce((acc, curr) => acc + (curr.debet || 0) - (curr.kredit || 0), 0);
+    prevAccumulated = prevData.reduce((acc, curr) => acc + (curr.debet || 0) - (curr.kredit || 0), 0);
   }
+
+  const saldoAwal = silpaTahunLalu + prevAccumulated;
 
   const data = await prisma.bKU.findMany({
     where,
@@ -104,6 +121,7 @@ export async function GET(req: Request) {
   return NextResponse.json({
     data: withSaldo,
     saldoAwal,
+    silpaTahunLalu,
     totalDebet,
     totalKredit,
     saldoAkhir,

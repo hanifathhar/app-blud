@@ -72,6 +72,13 @@ export default function LpjPage() {
     fetch("/api/me").then(r => r.json()).then(d => {
       if (d.user) {
         setUser(d.user);
+        if (d.user.tahun) {
+          const userYear = parseInt(d.user.tahun);
+          if (!isNaN(userYear)) {
+            setTahun(userYear);
+            localStorage.setItem("tahunName", userYear.toString());
+          }
+        }
         if (d.user.role !== "superadmin" && d.user.level !== 1) {
           const userUpt = d.user.kd_upt || d.user.unit || "";
           setFilterUpt(userUpt);

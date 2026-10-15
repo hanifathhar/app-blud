@@ -21,11 +21,12 @@ export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
   const mode = searchParams.get("mode"); // "eligible_lpj" atau list sp3b biasa
   const kd_upt = searchParams.get("kd_upt") || "";
+  const userLoginTahun = user?.tahun ? parseInt(user.tahun) : null;
   const tahunParam = searchParams.get("tahun");
-  const bulanParam = searchParams.get("bulan");
   const now = new Date();
-  const tahun = tahunParam ? parseInt(tahunParam) : now.getFullYear();
+  const tahun = (userLoginTahun && !isNaN(userLoginTahun)) ? userLoginTahun : (tahunParam ? parseInt(tahunParam) : now.getFullYear());
   const tahunStr = tahun.toString();
+  const bulanParam = searchParams.get("bulan");
   const q = searchParams.get("q") || "";
   const page = parseInt(searchParams.get("page") || "1");
   const limit = parseInt(searchParams.get("limit") || "10");
@@ -93,7 +94,11 @@ export async function GET(req: Request) {
     }
 
     // Mode 2: Ambil riwayat daftar SP3B
-    let queryWhere = `WHERE 1=1`;
+    let queryWhere = `WHERE (
+      EXTRACT(YEAR FROM h."tgl_sp3b") = ${tahun}
+      OR h."no_sp3b" LIKE '%/${tahunStr}'
+      OR EXISTS (SELECT 1 FROM "tbl_lpj" l WHERE l."no_lpj" = h."no_lpj" AND l."kd_upt" = h."kd_upt" AND l."tahun" = '${tahunStr}')
+    )`;
     if (kd_upt) {
       queryWhere += ` AND h."kd_upt" = '${kd_upt}'`;
     }

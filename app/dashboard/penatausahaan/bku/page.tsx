@@ -68,7 +68,18 @@ export default function BKUPage() {
   };
 
   useEffect(() => {
-    fetch("/api/me").then((r) => r.json()).then((d) => d.user && setUser(d.user));
+    fetch("/api/me").then((r) => r.json()).then((d) => {
+      if (d.user) {
+        setUser(d.user);
+        if (d.user.tahun) {
+          const userYear = parseInt(d.user.tahun);
+          if (!isNaN(userYear)) {
+            setTahun(userYear);
+            localStorage.setItem("tahunName", userYear.toString());
+          }
+        }
+      }
+    });
   }, []);
 
   useEffect(() => {
@@ -191,7 +202,9 @@ export default function BKUPage() {
       {/* Summary Cards */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 14, marginBottom: 20 }}>
         <div className="stat-card" style={{ padding: 16, borderLeft: "4px solid #6366F1" }}>
-          <div style={{ fontSize: 11, color: "#94A3B8", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 4 }}>Saldo Awal (Bulan Lalu)</div>
+          <div style={{ fontSize: 11, color: "#94A3B8", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 4 }}>
+            {bulan === 1 ? "Saldo Awal (SILPA)" : "Saldo Awal (Bulan Lalu)"}
+          </div>
           <div style={{ fontSize: 20, fontWeight: 800, color: summary.saldoAwal >= 0 ? "#6366F1" : "#F43F5E" }}>
             {formatRupiah(summary.saldoAwal)}
           </div>
@@ -242,10 +255,14 @@ export default function BKUPage() {
                   <td style={{ textAlign: "center", fontSize: 11, color: "#94A3B8" }}>-</td>
                   <td style={{ fontSize: 12, color: "#64748B" }}>-</td>
                   <td style={{ fontSize: 12, color: "#64748B" }}>-</td>
-                  <td style={{ fontWeight: 700, color: "#1E293B" }}>SALDO BULAN LALU</td>
+                  <td style={{ fontWeight: 700, color: "#1E293B" }}>
+                    {bulan === 1 ? "SALDO AWAL (SILPA TAHUN LALU)" : "SALDO BULAN LALU"}
+                  </td>
                   <td style={{ fontSize: 11, color: "#94A3B8" }}>-</td>
                   <td>
-                    <span className="badge badge-draft" style={{ fontSize: 10.5 }}>Saldo Awal</span>
+                    <span className="badge badge-draft" style={{ fontSize: 10.5 }}>
+                      {bulan === 1 ? "SILPA" : "Saldo Awal"}
+                    </span>
                   </td>
                   <td style={{ textAlign: "right", color: "#94A3B8" }}>-</td>
                   <td style={{ textAlign: "right", color: "#94A3B8" }}>-</td>

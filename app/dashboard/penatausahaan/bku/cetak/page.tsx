@@ -368,7 +368,9 @@ function CetakBkuContent() {
               <td style={{ textAlign: "center" }}></td>
               <td style={{ textAlign: "center" }}></td>
               <td></td>
-              <td style={{ fontWeight: "bold" }}>SALDO BULAN LALU</td>
+              <td style={{ fontWeight: "bold" }}>
+                {parseInt(bulan) === 1 ? "SALDO AWAL (SILPA TAHUN LALU)" : "SALDO BULAN LALU"}
+              </td>
               <td style={{ textAlign: "right" }}></td>
               <td style={{ textAlign: "right" }}></td>
               <td style={{ textAlign: "right", fontWeight: "bold" }}>

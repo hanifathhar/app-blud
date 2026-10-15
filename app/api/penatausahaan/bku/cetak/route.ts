@@ -7,10 +7,12 @@ export async function GET(req: NextRequest) {
     const user = getUserFromRequest(req);
     if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
+    const userLoginTahun = user?.tahun ? parseInt(user.tahun) : null;
     const isSuperAdmin = user.role === "superadmin" || user.level === 1;
     const { searchParams } = new URL(req.url);
     const bulan = parseInt(searchParams.get("bulan") || "1");
-    const tahun = parseInt(searchParams.get("tahun") || new Date().getFullYear().toString());
+    const tahunParam = searchParams.get("tahun");
+    const tahun = (userLoginTahun && !isNaN(userLoginTahun)) ? userLoginTahun : (tahunParam ? parseInt(tahunParam) : new Date().getFullYear());
     const kd_upt = isSuperAdmin
       ? (searchParams.get("kd_upt") || user.kd_upt || user.unit)
       : (user.kd_upt || user.unit);
@@ -29,7 +31,17 @@ export async function GET(req: NextRequest) {
       where: { kd_urusan: "1.02" },
     });
 
-    // 3. Hitung Saldo Bulan Lalu (Kumulatif transaksi sebelum bulan ini pada tahun berjalan)
+    // 3. Ambil SILPA Tahun Lalu dari tbl_silpa untuk UPT dan Tahun ini
+    const silpaRecords = await prisma.tblSilpa.findMany({
+      where: {
+        kd_upt: kd_upt,
+        tahun: String(tahun),
+      },
+      select: { nilai: true },
+    });
+    const silpaTahunLalu = silpaRecords.reduce((acc, curr) => acc + (Number(curr.nilai) || 0), 0);
+
+    // Hitung Saldo Bulan Lalu (SILPA Tahun Lalu + Kumulatif transaksi sebelum bulan ini pada tahun berjalan)
     const prevTransactions = await prisma.bKU.findMany({
       where: {
         kd_upt: kd_upt,
@@ -42,9 +54,11 @@ export async function GET(req: NextRequest) {
       },
     });
 
-    const saldoBulanLalu = prevTransactions.reduce((acc, curr) => {
+    const prevAccumulated = prevTransactions.reduce((acc, curr) => {
       return acc + (Number(curr.debet) || 0) - (Number(curr.kredit) || 0);
     }, 0);
+
+    const saldoBulanLalu = silpaTahunLalu + prevAccumulated;
 
     // 4. Ambil Transaksi BKU Bulan Ini
     const currentTransactions = await prisma.bKU.findMany({

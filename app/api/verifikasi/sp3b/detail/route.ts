@@ -73,13 +73,63 @@ export async function GET(req: Request) {
       });
     }
 
+    // Hitung Saldo Awal berdasarkan SILPA Tahun Lalu per Sumber Dana
+    const sp3bSumdan = (sp3b.sumdan || "").trim();
+    const tglSp3b = sp3b.tgl_sp3b ? new Date(sp3b.tgl_sp3b) : new Date();
+    const tahunSp3b = tglSp3b.getFullYear().toString();
+    const bulanSp3b = Number(sp3b.bulan) || (tglSp3b.getMonth() + 1);
+
+    let silpaRows: any[] = [];
+    if (sp3bSumdan) {
+      silpaRows = await prisma.$queryRawUnsafe(
+        `SELECT COALESCE(SUM(nilai), 0) as total 
+         FROM "tbl_silpa" 
+         WHERE "kd_upt" = $1 AND "tahun" = $2 AND ("sumdan" ILIKE $3 OR $3 ILIKE '%' || "sumdan" || '%')`,
+        kd_upt,
+        tahunSp3b,
+        sp3bSumdan
+      );
+    } else {
+      silpaRows = await prisma.$queryRawUnsafe(
+        `SELECT COALESCE(SUM(nilai), 0) as total 
+         FROM "tbl_silpa" 
+         WHERE "kd_upt" = $1 AND "tahun" = $2`,
+        kd_upt,
+        tahunSp3b
+      );
+    }
+    const silpaAwal = Number(silpaRows[0]?.total) || 0;
+
+    // Ambil akumulasi transaksi SP3B bulan-bulan sebelumnya pada tahun yang sama
+    const prevSp3bRows: any[] = await prisma.$queryRawUnsafe(
+      `SELECT COALESCE(SUM(total_pendapatan - total_belanja), 0) as prev_net
+       FROM "trhsp3b"
+       WHERE "kd_upt" = $1 
+         AND "bulan" < $2 
+         AND EXTRACT(YEAR FROM "tgl_sp3b") = $3
+         AND ("no_sp3b" != $4)
+         ${sp3bSumdan ? `AND ("sumdan" ILIKE '%${sp3bSumdan.replace(/'/g, "''")}%' OR '${sp3bSumdan.replace(/'/g, "''")}' ILIKE '%' || "sumdan" || '%')` : ''}`,
+      kd_upt,
+      bulanSp3b,
+      Number(tahunSp3b),
+      no_sp3b
+    );
+    const prevNet = Number(prevSp3bRows[0]?.prev_net) || 0;
+    const saldoAwal = silpaAwal + prevNet;
+    const totalPendapatan = Number(sp3b.total_pendapatan) || 0;
+    const totalBelanja = Number(sp3b.total_belanja) || 0;
+    const saldoAkhir = saldoAwal + totalPendapatan - totalBelanja;
+
     return NextResponse.json({
       success: true,
       data: {
         ...sp3b,
         nm_upt: upt?.nm_upt || sp3b.nm_upt || kd_upt,
-        total_pendapatan: Number(sp3b.total_pendapatan) || 0,
-        total_belanja: Number(sp3b.total_belanja) || 0,
+        saldo_awal: saldoAwal,
+        saldo_akhir: saldoAkhir,
+        silpa_awal: silpaAwal,
+        total_pendapatan: totalPendapatan,
+        total_belanja: totalBelanja,
         rincianPendapatan: rincianPendapatan.map((p) => ({
           ...p,
           nilai: Number(p.nilai) || 0,

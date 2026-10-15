@@ -69,6 +69,13 @@ export default function Sp3bPage() {
       .then((d) => {
         if (d.user) {
           setUser(d.user);
+          if (d.user.tahun) {
+            const userYear = parseInt(d.user.tahun);
+            if (!isNaN(userYear)) {
+              setTahun(userYear);
+              localStorage.setItem("tahunName", userYear.toString());
+            }
+          }
           // Hanya Dinkes/Superadmin
           const isDinkes = d.user.role === "superadmin" || d.user.level === 1 || d.user.role === "keuangan" || d.user.role === "kpa";
           if (!isDinkes) {
@@ -382,7 +389,7 @@ export default function Sp3bPage() {
       {/* Main Table Card */}
       <div className="card">
         <div className="card-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-          <span className="card-title">Daftar Dokumen SP3B Diterbitkan ({total})</span>
+          <span className="card-title">Riwayat Dokumen SP3B Diterbitkan (TA {tahun}) - Total: {total}</span>
           <button onClick={loadData} className="btn btn-outline" style={{ padding: "5px 10px", fontSize: 12, display: "inline-flex", alignItems: "center", gap: 6 }}>
             <RefreshCw size={13} /> Refresh
           </button>
