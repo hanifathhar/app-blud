@@ -111,7 +111,7 @@ export default function Header({ setSidebarOpen, title }: HeaderProps) {
 
   return (
     <>
-      <header className="page-header" style={{ position: "relative" }}>
+      <header className="page-header" style={{ position: "relative", zIndex: 40 }}>
       {/* Mobile Hamburger */}
       <button
         className="md:hidden"

@@ -102,16 +102,7 @@ export default function Sp3bDetailPage({ params }: { params: Promise<{ kdUnit: s
           </div>
         </div>
 
-        <div style={{ display: "flex", gap: 12 }}>
-          <button
-            className="btn btn-outline"
-            onClick={handleCetak}
-            disabled={!data}
-            style={{ display: "inline-flex", alignItems: "center", gap: 8, backgroundColor: "#fff" }}
-          >
-            <Printer size={16} /> Cetak Dokumen SP3B
-          </button>
-        </div>
+
       </div>
 
       {/* Form Informasi Dokumen SP3B */}
@@ -421,10 +412,7 @@ export default function Sp3bDetailPage({ params }: { params: Promise<{ kdUnit: s
           }}
         >
           <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, color: "#64748B" }}>
-            <span>Total Transaksi Disahkan:</span>
-            <span style={{ fontSize: 16, fontWeight: 800, color: "#0F172A" }}>
-              {formatRupiah((data.total_pendapatan || 0) + (data.total_belanja || 0))}
-            </span>
+
           </div>
 
           <div style={{ display: "flex", alignItems: "center", gap: 12 }}>

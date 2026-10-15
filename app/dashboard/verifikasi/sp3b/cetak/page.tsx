@@ -1,8 +1,8 @@
 "use client";
 
 import React, { useEffect, useState, Suspense } from "react";
-import { useSearchParams } from "next/navigation";
-import { ArrowLeft, Printer, FileText, CheckCircle2 } from "lucide-react";
+import { useSearchParams, useRouter } from "next/navigation";
+import { ArrowLeft, Printer, FileText, ZoomIn, ZoomOut, RotateCcw } from "lucide-react";
 
 function formatCurrencyRupiah(val: number) {
   return new Intl.NumberFormat("id-ID", {
@@ -17,14 +17,28 @@ const BULAN_NAMA = [
 ];
 
 function CetakSp3bContent() {
+  const router = useRouter();
   const searchParams = useSearchParams();
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [paperSize, setPaperSize] = useState<"A4" | "Folio">("Folio");
+  const [zoom, setZoom] = useState<number>(100);
 
   const no_sp3b = searchParams.get("no_sp3b") || "";
   const kd_upt = searchParams.get("kd_upt") || "";
+
+  const handleKembali = () => {
+    if (typeof window !== "undefined") {
+      if (window.opener) {
+        window.close();
+      } else if (window.history.length > 1) {
+        window.history.back();
+      } else {
+        router.push("/dashboard/verifikasi/sp3b");
+      }
+    }
+  };
 
   useEffect(() => {
     const fetchSp3bDetail = async () => {
@@ -64,7 +78,8 @@ function CetakSp3bContent() {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-slate-100 text-slate-600 font-sans">
         <div className="w-10 h-10 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mb-4"></div>
-        <p className="font-medium text-sm">Menyiapkan pratinjau dokumen SP3B...</p>
+        <p className="font-semibold text-sm">Menyiapkan pratinjau dokumen SP3B resmi...</p>
+        <span className="text-xs text-slate-400 mt-1">Mengambil data rincian dan otorisasi penandatangan</span>
       </div>
     );
   }
@@ -72,13 +87,14 @@ function CetakSp3bContent() {
   if (error || !data) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-slate-100 p-4 font-sans">
-        <div className="bg-white p-6 rounded-lg shadow-md max-w-md w-full text-center border border-red-200">
-          <p className="text-red-600 font-medium text-sm mb-4">{error || "Data SP3B tidak ditemukan"}</p>
+        <div className="bg-white p-6 rounded-xl shadow-lg max-w-md w-full text-center border border-red-200">
+          <div className="w-12 h-12 bg-red-50 text-red-600 rounded-full flex items-center justify-center mx-auto mb-3 font-bold text-xl">!</div>
+          <p className="text-red-600 font-semibold text-sm mb-4">{error || "Data SP3B tidak ditemukan"}</p>
           <button
-            onClick={() => window.close()}
-            className="px-4 py-2 bg-slate-800 text-white rounded text-xs font-semibold hover:bg-slate-700 transition-colors"
+            onClick={handleKembali}
+            className="px-4 py-2 bg-slate-800 text-white rounded-lg text-xs font-semibold hover:bg-slate-700 transition-colors shadow cursor-pointer"
           >
-            Tutup Halaman
+            Kembali
           </button>
         </div>
       </div>
@@ -110,6 +126,7 @@ function CetakSp3bContent() {
 
   const pageSizeStyle = paperSize === "A4" ? "210mm 297mm" : "215mm 330mm";
   const sheetWidth = paperSize === "A4" ? "210mm" : "215mm";
+  const sheetMinHeight = paperSize === "A4" ? "297mm" : "330mm";
 
   const tglCetak = tgl_sp3b ? new Date(tgl_sp3b) : new Date();
   const tahunAnggaran = tahun || tglCetak.getFullYear();
@@ -125,254 +142,717 @@ function CetakSp3bContent() {
   const kdProgram = kd_program || "1.01.02";
   const kdKegiatan = kd_kegiatan || "1.01.02.1.01";
 
-  const maxRows = Math.max(rincianPendapatan.length, rincianBelanja.length, 1);
+  // Minimum 5 baris agar format tabel portrait tetap tegak, kokoh, dan proporsional
+  const minRows = 5;
+  const maxRows = Math.max(rincianPendapatan.length, rincianBelanja.length, minRows);
   const paddedPend: any[] = [...rincianPendapatan, ...Array(Math.max(0, maxRows - rincianPendapatan.length)).fill(null)];
   const paddedBel: any[] = [...rincianBelanja, ...Array(Math.max(0, maxRows - rincianBelanja.length)).fill(null)];
 
+  const namaPenandatangan = penandatanganKadis?.nama || nm_kadis || data?.nm_kadis || "";
+  const nipPenandatangan = penandatanganKadis?.nip || nip_kadis || data?.nip_kadis || "";
+  const pangkatPenandatangan = penandatanganKadis?.pangkat_golongan || pangkat_kadis || "";
+  const jabatanPenandatangan = penandatanganKadis?.jabatan?.toUpperCase() || jabatan_kadis || "KEPALA DINAS KESEHATAN DAERAH";
+
   return (
-    <div style={{ minHeight: "100vh", backgroundColor: "#E2E8F0", paddingBottom: 60, fontFamily: "sans-serif" }}>
-      {/* TOOLBAR HEADBOARD PROFESIONAL */}
-      <div className="no-print" style={{ backgroundColor: "#0F172A", padding: "10px 24px", display: "flex", justifyContent: "space-between", alignItems: "center", color: "#fff", position: "sticky", top: 0, zIndex: 50, boxShadow: "0 2px 10px rgba(0,0,0,0.15)" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-          <button
-            onClick={() => window.close()}
-            style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "6px 12px", backgroundColor: "#334155", color: "#F8FAFC", border: "none", borderRadius: 6, cursor: "pointer", fontSize: 13, fontWeight: 500, transition: "all 0.2s" }}
-          >
-            <ArrowLeft size={15} /> Tutup
-          </button>
-          <div style={{ height: 18, width: 1, backgroundColor: "#475569" }} />
-          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <FileText size={18} className="text-blue-400" />
-            <span style={{ fontSize: 13, fontWeight: 600, color: "#F8FAFC" }}>Pratinjau SP3B / SP2B</span>
-            <span style={{ fontSize: 11, backgroundColor: "#1E293B", color: "#94A3B8", padding: "2px 8px", borderRadius: 4, border: "1px solid #334155", fontFamily: "monospace" }}>{no_sp3b}</span>
-          </div>
-        </div>
+    <div className="cetak-page-container">
+      {/* GLOBAL CSS UNTUK PRINT & SCREEN */}
+      <style jsx global>{`
+        @page {
+          size: ${pageSizeStyle} portrait;
+          margin: 10mm 12mm;
+        }
 
-        <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 8, backgroundColor: "#1E293B", padding: "4px 8px", borderRadius: 6, border: "1px solid #334155" }}>
-            <span style={{ fontSize: 12, color: "#94A3B8" }}>Kertas:</span>
-            <button
-              onClick={() => setPaperSize("Folio")}
-              style={{ padding: "3px 10px", fontSize: 12, borderRadius: 4, border: "none", cursor: "pointer", fontWeight: 600, backgroundColor: paperSize === "Folio" ? "#2563EB" : "transparent", color: paperSize === "Folio" ? "#FFF" : "#94A3B8" }}
-            >
-              Folio / F4
-            </button>
-            <button
-              onClick={() => setPaperSize("A4")}
-              style={{ padding: "3px 10px", fontSize: 12, borderRadius: 4, border: "none", cursor: "pointer", fontWeight: 600, backgroundColor: paperSize === "A4" ? "#2563EB" : "transparent", color: paperSize === "A4" ? "#FFF" : "#94A3B8" }}
-            >
-              A4
-            </button>
-          </div>
+        @media screen {
+          .cetak-page-container {
+            min-height: 100vh;
+            background-color: #cbd5e1;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            padding-bottom: 80px;
+          }
 
-          <button
-            onClick={() => window.print()}
-            style={{ display: "inline-flex", alignItems: "center", gap: 8, padding: "7px 18px", backgroundColor: "#2563EB", color: "#fff", border: "none", borderRadius: 6, cursor: "pointer", fontWeight: 600, fontSize: 13, boxShadow: "0 2px 4px rgba(37,99,235,0.3)" }}
-          >
-            <Printer size={16} /> Cetak Dokumen
-          </button>
-        </div>
-      </div>
+          .print-canvas {
+            padding: 30px 16px;
+            display: flex;
+            justify-content: center;
+            overflow-x: auto;
+          }
 
-      {/* DOKUMEN CANVAS CONTAINER */}
-      <div style={{ padding: "32px 16px", display: "flex", justifyContent: "center" }}>
-        {/* LEMBAR CETAK */}
+          .print-sheet {
+            background-color: #ffffff;
+            width: ${sheetWidth};
+            min-height: ${sheetMinHeight};
+            padding: 10mm 12mm;
+            border-radius: 3px;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.15), 0 8px 10px -6px rgba(0, 0, 0, 0.1), 0 0 0 1px rgba(0,0,0,0.06);
+            box-sizing: border-box;
+            transition: transform 0.15s ease-out;
+          }
+        }
+
+        @media print {
+          html, body {
+            background: transparent !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+          }
+
+          .no-print {
+            display: none !important;
+          }
+
+          .cetak-page-container {
+            background: transparent !important;
+            padding: 0 !important;
+            min-height: auto !important;
+          }
+
+          .print-canvas {
+            padding: 0 !important;
+            display: block !important;
+          }
+
+          .print-sheet {
+            width: 100% !important;
+            min-height: auto !important;
+            padding: 0 !important;
+            margin: 0 !important;
+            box-shadow: none !important;
+            border-radius: 0 !important;
+            transform: none !important;
+          }
+        }
+
+        .document-frame {
+          border: 2px solid #000;
+          font-family: "Bookman Old Style", "Times New Roman", Times, Georgia, serif;
+          font-size: 10.5pt;
+          line-height: 1.35;
+          color: #000;
+          background: #fff;
+          box-sizing: border-box;
+          width: 100%;
+        }
+
+        .sp3b-table {
+          width: 100%;
+          border-collapse: collapse;
+        }
+
+        .sp3b-table td, .sp3b-table th {
+          border: 1px solid #000;
+          padding: 5px 6px;
+          vertical-align: middle;
+        }
+
+        .border-b-thick {
+          border-bottom: 2px solid #000;
+        }
+
+        .border-b-mid {
+          border-bottom: 1.5px solid #000;
+        }
+
+        .btn-toolbar-kembali:hover {
+          background-color: #334155 !important;
+          color: #ffffff !important;
+        }
+
+        .btn-toolbar-icon:hover {
+          background-color: #334155 !important;
+          color: #ffffff !important;
+        }
+
+        .btn-cetak-sp3b:hover {
+          background-image: linear-gradient(135deg, #3B82F6 0%, #2563EB 100%) !important;
+          box-shadow: 0 6px 20px rgba(37, 99, 235, 0.6) !important;
+          transform: translateY(-1px);
+        }
+
+        .btn-cetak-sp3b:active {
+          transform: translateY(1px);
+          box-shadow: 0 2px 8px rgba(37, 99, 235, 0.4) !important;
+        }
+
+        .btn-cetak-sp3b-fab:hover {
+          background-image: linear-gradient(135deg, #3B82F6 0%, #2563EB 100%) !important;
+          box-shadow: 0 12px 30px rgba(30, 58, 138, 0.6) !important;
+          transform: scale(1.04);
+        }
+
+        .btn-cetak-sp3b-fab:active {
+          transform: scale(0.96);
+        }
+      `}</style>
+
+      {/* 1. TOP EXECUTIVE TOOLBAR (HANYA LAYAR) */}
+      <header
+        className="no-print"
+        style={{
+          position: "sticky",
+          top: 0,
+          zIndex: 20,
+          backgroundColor: "#0F172A",
+          borderBottom: "1px solid #1E293B",
+          boxShadow: "0 4px 16px rgba(0, 0, 0, 0.3)",
+          width: "100%",
+        }}
+      >
         <div
-          className="print-sheet"
           style={{
-            width: sheetWidth,
-            backgroundColor: "#FFFFFF",
-            padding: 0,
-            boxShadow: "0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1)",
-            fontFamily: "'Times New Roman', Times, serif",
-            fontSize: "11pt",
-            color: "#000",
+            maxWidth: "1400px",
+            margin: "0 auto",
+            padding: "10px 20px",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            gap: "16px",
             boxSizing: "border-box",
-            border: "2px solid #000"
+            flexWrap: "wrap",
           }}
         >
-          <style dangerouslySetInnerHTML={{
-            __html: `
-            @media print {
-              body { background-color: transparent !important; margin: 0 !important; padding: 0 !important; }
-              .no-print { display: none !important; }
-              .print-sheet { width: 100% !important; margin: 0 !important; box-shadow: none !important; border: 2px solid #000 !important; }
-              @page { size: ${pageSizeStyle}; margin: 12mm; }
-            }
-          ` }} />
+          {/* Sisi Kiri: Tombol Kembali & Info Dokumen */}
+          <div style={{ display: "flex", alignItems: "center", gap: "12px", minWidth: 0 }}>
+            <button
+              onClick={handleKembali}
+              className="btn-toolbar-kembali"
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: "8px",
+                padding: "7px 14px",
+                backgroundColor: "#1E293B",
+                color: "#E2E8F0",
+                border: "1px solid #334155",
+                borderRadius: "8px",
+                fontSize: "13px",
+                fontWeight: 600,
+                cursor: "pointer",
+                transition: "all 0.15s ease",
+              }}
+              title="Kembali ke halaman sebelumnya"
+            >
+              <ArrowLeft size={16} />
+              <span>Kembali</span>
+            </button>
 
-          {/* 1. KOP SURAT */}
-          <table style={{ width: "100%", borderCollapse: "collapse", borderBottom: "2px solid #000" }}>
-            <tbody>
-              <tr>
-                <td style={{ width: "22%", padding: "12px 8px", textAlign: "center", verticalAlign: "middle", borderRight: "2px solid #000" }}>
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src="/images/logo-tapsel.png" alt="Logo Tapanuli Selatan" style={{ width: 75, height: "auto", objectFit: "contain" }} />
-                </td>
-                <td style={{ padding: "8px 12px", textAlign: "center", verticalAlign: "middle" }}>
-                  <div style={{ fontSize: "12pt", fontWeight: 700, letterSpacing: "0.3px" }}>PEMERINTAH KABUPATEN TAPANULI SELATAN</div>
-                  <div style={{ fontSize: "13pt", fontWeight: 700, marginTop: 2, letterSpacing: "0.3px" }}>DINAS KESEHATAN DAERAH</div>
-                  <div style={{ marginTop: 8, fontSize: "10pt", fontWeight: 700 }}>SURAT PERMINTAAN PENGESAHAN BELANJA (SP2B) Puskesmas</div>
-                  <div style={{ fontSize: "10pt", fontWeight: 700, marginTop: 2 }}>TANGGAL : {tglFormatted}, NOMOR : {no_sp3b}</div>
-                </td>
-              </tr>
-            </tbody>
-          </table>
+            <div style={{ width: "1px", height: "24px", backgroundColor: "#334155" }} />
 
-          {/* 2. KALIMAT PENGANTAR */}
-          <div style={{ borderBottom: "2px solid #000", fontSize: "10.5pt", lineHeight: "1.4" }}>
-            <div style={{ padding: "4px 8px", borderBottom: "1px solid #000" }}>
-              Kepala Dinas Kesehatan Daerah Kabupaten Tapanuli Selatan memohon kepada :
-            </div>
-            <div style={{ padding: "4px 8px", borderBottom: "1px solid #000" }}>
-              Bendahara Umum Daerah Selaku PPKD
-            </div>
-            <div style={{ padding: "4px 8px" }}>
-              Agar Mengesahkan dan membukukan pendapatan dan belanja dana {sumdan} sejumlah :
-            </div>
-          </div>
-
-          {/* 3. RINCIAN SALDO */}
-          <div style={{ borderBottom: "2px solid #000", padding: "6px 8px" }}>
-            <table style={{ borderCollapse: "collapse", fontSize: "10.5pt" }}>
-              <tbody>
-                {[
-                  { label: "1. Saldo Awal", val: saldoAwal },
-                  { label: "2. Pendapatan", val: totalPend },
-                  { label: "3. Belanja", val: totalBel },
-                  { label: "4. Saldo Akhir", val: saldoAkhir },
-                ].map(({ label, val }) => (
-                  <tr key={label}>
-                    <td style={{ padding: "1px 0", width: 110 }}>{label}</td>
-                    <td style={{ padding: "1px 8px 1px 0", textAlign: "center", width: 12 }}>:</td>
-                    <td style={{ padding: "1px 0", width: 28 }}>Rp.</td>
-                    <td style={{ padding: "1px 0", textAlign: "right", minWidth: 90 }}>
-                      {formatCurrencyRupiah(val)}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-
-          {/* 4. TABEL UTAMA */}
-          <table style={{ width: "100%", borderCollapse: "collapse", borderBottom: "2px solid #000", fontSize: "10pt" }}>
-            <tbody>
-              <tr>
-                <td style={{ border: "1px solid #000", borderTop: "none", borderLeft: "none", padding: "5px 4px", textAlign: "center", width: "22%" }}>Untuk Bulan</td>
-                <td style={{ border: "1px solid #000", borderTop: "none", padding: "5px 4px", textAlign: "center", width: "28%" }}>{BULAN_NAMA[bulan]}</td>
-                <td style={{ border: "1px solid #000", borderTop: "none", padding: "5px 4px", textAlign: "center", width: "25%" }}>Tahun Anggaran</td>
-                <td style={{ border: "1px solid #000", borderTop: "none", borderRight: "none", padding: "5px 4px", textAlign: "center", width: "25%" }}>{tahunAnggaran}</td>
-              </tr>
-              <tr>
-                <td style={{ border: "1px solid #000", borderLeft: "none", padding: "5px 4px", textAlign: "center" }}>Dasar Pengesahan</td>
-                <td style={{ border: "1px solid #000", padding: "5px 4px", textAlign: "center" }}>Urusan</td>
-                <td style={{ border: "1px solid #000", padding: "5px 4px", textAlign: "center" }}>Organisasi</td>
-                <td style={{ border: "1px solid #000", borderRight: "none", padding: "5px 4px", textAlign: "center" }}>Nama Puskesmas</td>
-              </tr>
-              <tr>
-                <td style={{ border: "1px solid #000", borderLeft: "none", padding: "6px 4px", textAlign: "center", verticalAlign: "top" }}>
-                  {kdKegiatan}
-                </td>
-                <td style={{ border: "1px solid #000", padding: "6px 4px", textAlign: "center", verticalAlign: "top" }}>
-                  <div>{kdProgram}</div>
-                  <div style={{ marginTop: 2 }}>Program :</div>
-                  <div>{kdSubKegiatan}</div>
-                </td>
-                <td style={{ border: "1px solid #000", padding: "6px 4px", textAlign: "center", verticalAlign: "top" }}>
-                  <div>Dinas Kesehatan Daerah</div>
-                  <div style={{ marginTop: 2 }}>Kegiatan :</div>
-                  <div>{kdKegiatan}.01.00</div>
-                </td>
-                <td style={{ border: "1px solid #000", borderRight: "none", padding: "6px 4px", textAlign: "center", verticalAlign: "top" }}>
-                  {nm_upt || upt?.nm_upt || "Puskesmas Batang Toru"}
-                </td>
-              </tr>
-
-              <tr>
-                <td colSpan={2} style={{ border: "1px solid #000", borderLeft: "none", padding: "5px 4px", textAlign: "center", fontWeight: 700 }}>
-                  PENDAPATAN
-                </td>
-                <td colSpan={2} style={{ border: "1px solid #000", borderRight: "none", padding: "5px 4px", textAlign: "center", fontWeight: 700 }}>
-                  BELANJA
-                </td>
-              </tr>
-              <tr>
-                <td style={{ border: "1px solid #000", borderLeft: "none", padding: "6px 4px", textAlign: "center", fontWeight: 700, width: "25%" }}>
-                  KODE REKENING
-                </td>
-                <td style={{ border: "1px solid #000", padding: "6px 4px", textAlign: "center", fontWeight: 700, width: "25%" }}>
-                  JUMLAH<br />(RP)
-                </td>
-                <td style={{ border: "1px solid #000", padding: "6px 4px", textAlign: "center", fontWeight: 700, width: "25%" }}>
-                  KODE REKENING
-                </td>
-                <td style={{ border: "1px solid #000", borderRight: "none", padding: "6px 4px", textAlign: "center", fontWeight: 700, width: "25%" }}>
-                  JUMLAH<br />(RP)
-                </td>
-              </tr>
-
-              {Array.from({ length: maxRows }).map((_, idx) => {
-                const p = paddedPend[idx];
-                const b = paddedBel[idx];
-                return (
-                  <tr key={idx}>
-                    <td style={{ border: "1px solid #000", borderLeft: "none", padding: "6px 8px", textAlign: "center" }}>
-                      {p ? p.kd_rek6 : ""}
-                    </td>
-                    <td style={{ border: "1px solid #000", padding: "6px 8px", textAlign: "right" }}>
-                      {p ? formatCurrencyRupiah(p.nilai) : ""}
-                    </td>
-                    <td style={{ border: "1px solid #000", padding: "6px 8px", textAlign: "center" }}>
-                      {b ? b.kd_rek6 : ""}
-                    </td>
-                    <td style={{ border: "1px solid #000", borderRight: "none", padding: "6px 8px", textAlign: "right" }}>
-                      {b ? formatCurrencyRupiah(b.nilai) : ""}
-                    </td>
-                  </tr>
-                );
-              })}
-
-              <tr style={{ fontWeight: 700 }}>
-                <td style={{ border: "1px solid #000", borderLeft: "none", padding: "6px 8px" }}>
-                  Jumlah Pendapatan (Rp)
-                </td>
-                <td style={{ border: "1px solid #000", padding: "6px 8px", textAlign: "right" }}>
-                  {formatCurrencyRupiah(totalPend)}
-                </td>
-                <td style={{ border: "1px solid #000", padding: "6px 8px" }}>
-                  Jumlah Belanja (Rp)
-                </td>
-                <td style={{ border: "1px solid #000", borderRight: "none", padding: "6px 8px", textAlign: "right" }}>
-                  {formatCurrencyRupiah(totalBel)}
-                </td>
-              </tr>
-            </tbody>
-          </table>
-
-          {/* 5. BLOK TANDA TANGAN */}
-          <div style={{ padding: "24px 24px 20px 24px", display: "flex", justifyContent: "flex-end", fontSize: "10.5pt" }}>
-            <div style={{ textAlign: "center", minWidth: 260 }}>
-              <div>Sipirok, {tglCetak.toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" })}</div>
-              <div style={{ fontWeight: 700, marginTop: 4 }}>PENGGUNA ANGGARAN</div>
-              <div style={{ fontWeight: 700 }}>
-                {penandatanganKadis?.jabatan?.toUpperCase() || jabatan_kadis || "KEPALA DINAS KESEHATAN DAERAH"}
+            <div style={{ display: "flex", alignItems: "center", gap: "10px", minWidth: 0 }}>
+              <div
+                style={{
+                  width: "32px",
+                  height: "32px",
+                  borderRadius: "8px",
+                  backgroundColor: "rgba(37, 99, 235, 0.15)",
+                  border: "1px solid rgba(59, 130, 246, 0.3)",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  flexShrink: 0,
+                }}
+              >
+                <FileText size={16} color="#60A5FA" />
               </div>
-              <div style={{ height: 65 }} />
-              <div style={{ fontWeight: 700, textDecoration: "underline" }}>
-                {penandatanganKadis?.nama || nm_kadis || data?.nm_kadis || "dr. SRI KHAIRUNNISA, MH, MKM"}
-              </div>
-              {(penandatanganKadis?.pangkat_golongan || pangkat_kadis) && (
-                <div style={{ fontSize: "9.5pt", color: "#334155", marginTop: 1 }}>
-                  {penandatanganKadis?.pangkat_golongan || pangkat_kadis}
+              <div style={{ minWidth: 0 }}>
+                <div
+                  style={{
+                    fontSize: "11px",
+                    fontWeight: 700,
+                    color: "#94A3B8",
+                    letterSpacing: "0.5px",
+                    textTransform: "uppercase",
+                  }}
+                >
+                  Pratinjau SP3B
                 </div>
-              )}
-              <div style={{ marginTop: 2 }}>
-                NIP. {penandatanganKadis?.nip || nip_kadis || data?.nip_kadis || "197112262002122008"}
+                <div
+                  style={{
+                    fontSize: "12px",
+                    fontWeight: 600,
+                    color: "#93C5FD",
+                    fontFamily: "monospace",
+                    letterSpacing: "0.2px",
+                    whiteSpace: "nowrap",
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                    maxWidth: "280px",
+                  }}
+                >
+                  {no_sp3b}
+                </div>
               </div>
             </div>
+          </div>
+
+          {/* Sisi Kanan: Pengatur Kertas, Zoom, & Tombol Cetak */}
+          <div style={{ display: "flex", alignItems: "center", gap: "12px", flexShrink: 0 }}>
+            {/* Zoom Controls */}
+            <div
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                backgroundColor: "#1E293B",
+                border: "1px solid #334155",
+                borderRadius: "8px",
+                padding: "3px 6px",
+                gap: "2px",
+              }}
+            >
+              <button
+                onClick={() => setZoom((z) => Math.max(60, z - 10))}
+                className="btn-toolbar-icon"
+                style={{
+                  padding: "5px 7px",
+                  backgroundColor: "transparent",
+                  border: "none",
+                  color: "#CBD5E1",
+                  borderRadius: "6px",
+                  cursor: "pointer",
+                  display: "inline-flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+                title="Perkecil (-10%)"
+              >
+                <ZoomOut size={14} />
+              </button>
+              <span
+                style={{
+                  fontSize: "12px",
+                  fontFamily: "monospace",
+                  fontWeight: 600,
+                  color: "#F1F5F9",
+                  minWidth: "44px",
+                  textAlign: "center",
+                  userSelect: "none",
+                }}
+              >
+                {zoom}%
+              </span>
+              <button
+                onClick={() => setZoom((z) => Math.min(130, z + 10))}
+                className="btn-toolbar-icon"
+                style={{
+                  padding: "5px 7px",
+                  backgroundColor: "transparent",
+                  border: "none",
+                  color: "#CBD5E1",
+                  borderRadius: "6px",
+                  cursor: "pointer",
+                  display: "inline-flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+                title="Perbesar (+10%)"
+              >
+                <ZoomIn size={14} />
+              </button>
+              <div style={{ width: "1px", height: "16px", backgroundColor: "#334155", margin: "0 2px" }} />
+              <button
+                onClick={() => setZoom(100)}
+                className="btn-toolbar-icon"
+                style={{
+                  padding: "5px 7px",
+                  backgroundColor: "transparent",
+                  border: "none",
+                  color: "#94A3B8",
+                  borderRadius: "6px",
+                  cursor: "pointer",
+                  display: "inline-flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+                title="Reset Ukuran (100%)"
+              >
+                <RotateCcw size={13} />
+              </button>
+            </div>
+
+            {/* Pilihan Ukuran Kertas */}
+            <div
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                backgroundColor: "#1E293B",
+                border: "1px solid #334155",
+                borderRadius: "8px",
+                padding: "3px",
+                gap: "3px",
+              }}
+            >
+              <span style={{ fontSize: "11px", fontWeight: 600, color: "#94A3B8", padding: "0 6px" }}>
+                Kertas:
+              </span>
+              <button
+                onClick={() => setPaperSize("Folio")}
+                style={{
+                  padding: "5px 12px",
+                  fontSize: "12px",
+                  fontWeight: 600,
+                  color: paperSize === "Folio" ? "#FFFFFF" : "#CBD5E1",
+                  backgroundColor: paperSize === "Folio" ? "#2563EB" : "transparent",
+                  border: "none",
+                  borderRadius: "6px",
+                  cursor: "pointer",
+                  transition: "all 0.15s ease",
+                  boxShadow: paperSize === "Folio" ? "0 2px 6px rgba(37,99,235,0.4)" : "none",
+                }}
+              >
+                Folio / F4
+              </button>
+              <button
+                onClick={() => setPaperSize("A4")}
+                style={{
+                  padding: "5px 12px",
+                  fontSize: "12px",
+                  fontWeight: 600,
+                  color: paperSize === "A4" ? "#FFFFFF" : "#CBD5E1",
+                  backgroundColor: paperSize === "A4" ? "#2563EB" : "transparent",
+                  border: "none",
+                  borderRadius: "6px",
+                  cursor: "pointer",
+                  transition: "all 0.15s ease",
+                  boxShadow: paperSize === "A4" ? "0 2px 6px rgba(37,99,235,0.4)" : "none",
+                }}
+              >
+                A4
+              </button>
+            </div>
+
+            {/* Tombol Cetak Utama */}
+            <button
+              onClick={() => window.print()}
+              className="btn-cetak-sp3b"
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: "8px",
+                padding: "8px 18px",
+                backgroundColor: "#2563EB",
+                backgroundImage: "linear-gradient(135deg, #2563EB 0%, #1D4ED8 100%)",
+                color: "#FFFFFF",
+                fontSize: "13px",
+                fontWeight: 700,
+                borderRadius: "8px",
+                border: "1px solid #60A5FA",
+                cursor: "pointer",
+                boxShadow: "0 4px 14px rgba(37, 99, 235, 0.45)",
+                transition: "all 0.15s ease",
+                letterSpacing: "0.2px",
+              }}
+              title="Cetak Dokumen SP3B (Ctrl+P)"
+            >
+              <Printer size={16} />
+              <span>Cetak Dokumen</span>
+              <span
+                style={{
+                  fontSize: "10px",
+                  fontWeight: 600,
+                  backgroundColor: "rgba(0, 0, 0, 0.25)",
+                  color: "#DBEAFE",
+                  padding: "2px 6px",
+                  borderRadius: "4px",
+                  border: "1px solid rgba(255, 255, 255, 0.2)",
+                  marginLeft: "2px",
+                  fontFamily: "monospace",
+                }}
+              >
+                Ctrl+P
+              </span>
+            </button>
           </div>
         </div>
+      </header>
+
+      {/* 2. DOCUMENT CANVAS CONTAINER */}
+      <main className="print-canvas">
+        <article
+          className="print-sheet"
+          style={{
+            transform: zoom !== 100 ? `scale(${zoom / 100})` : "none",
+            transformOrigin: "top center",
+          }}
+        >
+          {/* BINGKAI UTAMA SP3B RESMI (DOCUMENT FRAME) */}
+          <div className="document-frame">
+            {/* BAGIAN 1: KOP SURAT RESMI */}
+            <table className="sp3b-table border-b-thick" style={{ border: "none" }}>
+              <tbody>
+                <tr>
+                  <td
+                    style={{
+                      width: "18%",
+                      padding: "10px 8px",
+                      textAlign: "center",
+                      verticalAlign: "middle",
+                      borderTop: "none",
+                      borderLeft: "none",
+                      borderBottom: "none",
+                      borderRight: "2px solid #000",
+                    }}
+                  >
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src="/images/logo-tapsel.png"
+                      alt="Logo Kabupaten Tapanuli Selatan"
+                      style={{ width: 72, height: "auto", margin: "0 auto", display: "block" }}
+                    />
+                  </td>
+                  <td
+                    style={{
+                      padding: "8px 12px 10px",
+                      textAlign: "center",
+                      verticalAlign: "middle",
+                      borderTop: "none",
+                      borderRight: "none",
+                      borderBottom: "none",
+                      borderLeft: "none",
+                    }}
+                  >
+                    <div style={{ fontSize: "11.5pt", fontWeight: 700, letterSpacing: "0.4px", lineHeight: "1.25" }}>
+                      PEMERINTAH KABUPATEN TAPANULI SELATAN
+                    </div>
+                    <div style={{ fontSize: "13pt", fontWeight: 800, marginTop: 2, letterSpacing: "0.5px", lineHeight: "1.25" }}>
+                      DINAS KESEHATAN DAERAH
+                    </div>
+                    <div style={{ marginTop: 8, fontSize: "11pt", fontWeight: 800, textTransform: "uppercase", letterSpacing: "0.3px", lineHeight: "1.25" }}>
+                      SURAT PERMINTAAN PENGESAHAN PENDAPATAN
+                    </div>
+                    <div style={{ marginTop: 8, fontSize: "11pt", fontWeight: 800, textTransform: "uppercase", letterSpacing: "0.3px", lineHeight: "1.25" }}>
+                      DAN BELANJA (SP3B)
+                    </div>
+                    <div style={{ fontSize: "10pt", fontWeight: 700, marginTop: 4 }}>
+                      TANGGAL : {tglFormatted}
+                    </div>
+                    <div style={{ fontSize: "10pt", fontWeight: 700, marginTop: 4 }}>
+                      NOMOR : {no_sp3b}
+                    </div>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+
+            {/* BAGIAN 2: KALIMAT PENGANTAR */}
+            <div className="border-b-mid" style={{ fontSize: "10.5pt", lineHeight: "1.4" }}>
+              <div style={{ padding: "5px 10px", borderBottom: "1px solid #000" }}>
+              </div>
+              <div style={{ padding: "5px 10px", borderBottom: "1px solid #000" }}>
+                Kepala Dinas Kesehatan Daerah Kabupaten Tapanuli Selatan memohon kepada :
+              </div>
+              <div style={{ padding: "5px 10px", fontWeight: 700, borderBottom: "1px solid #000" }}>
+                Bendahara Umum Daerah Selaku PPKD
+              </div>
+              <div style={{ padding: "5px 10px" }}>
+                Agar Mengesahkan dan membukukan pendapatan dan belanja dana {sumdan} sejumlah :
+              </div>
+            </div>
+
+            {/* BAGIAN 3: RINGKASAN SALDO (4 POIN) */}
+            <div className="border-b-mid" style={{ padding: "6px 12px 7px" }}>
+              <table style={{ borderCollapse: "collapse", fontSize: "10.5pt", width: "auto" }}>
+                <tbody>
+                  {[
+                    { label: "1. Saldo Awal", val: saldoAwal },
+                    { label: "2. Pendapatan", val: totalPend },
+                    { label: "3. Belanja", val: totalBel },
+                    { label: "4. Saldo Akhir", val: saldoAkhir },
+                  ].map(({ label, val }) => (
+                    <tr key={label}>
+                      <td style={{ padding: "1.5px 0", width: 120, fontWeight: 500 }}>{label}</td>
+                      <td style={{ padding: "1.5px 6px 1.5px 0", textAlign: "center", width: 12 }}>:</td>
+                      <td style={{ padding: "1.5px 4px 1.5px 0", width: 26, fontWeight: 600 }}>Rp.</td>
+                      <td style={{ padding: "1.5px 0", textAlign: "right", minWidth: 125, fontWeight: 700, fontVariantNumeric: "tabular-nums" }}>
+                        {formatCurrencyRupiah(val)}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {/* BAGIAN 4: IDENTITAS PENGESAHAN & STRUKTUR BLUD */}
+            <table className="sp3b-table border-b-mid" style={{ fontSize: "10pt" }}>
+              <tbody>
+                <tr>
+                  <td style={{ width: "22%", textAlign: "center", borderLeft: "none", borderTop: "none", fontWeight: 600 }}>
+                    Untuk Bulan
+                  </td>
+                  <td style={{ width: "28%", textAlign: "center", borderTop: "none", fontWeight: 700 }}>
+                    {BULAN_NAMA[bulan]}
+                  </td>
+                  <td style={{ width: "25%", textAlign: "center", borderTop: "none", fontWeight: 600 }}>
+                    Tahun Anggaran
+                  </td>
+                  <td style={{ width: "25%", textAlign: "center", borderRight: "none", borderTop: "none", fontWeight: 700 }}>
+                    {tahunAnggaran}
+                  </td>
+                </tr>
+                <tr>
+                  <td style={{ textAlign: "center", borderLeft: "none", fontWeight: 600 }}>Dasar Pengesahan</td>
+                  <td style={{ textAlign: "center", fontWeight: 600 }}>Urusan</td>
+                  <td style={{ textAlign: "center", fontWeight: 600 }}>Organisasi</td>
+                  <td style={{ textAlign: "center", borderRight: "none", fontWeight: 600 }}>Nama BLUD</td>
+                </tr>
+                <tr>
+                  <td style={{ borderLeft: "none", textAlign: "center", verticalAlign: "top", padding: "6px 4px", fontWeight: 600 }}>
+                    {kdKegiatan}
+                  </td>
+                  <td style={{ textAlign: "center", verticalAlign: "top", padding: "6px 4px" }}>
+                    <div style={{ fontWeight: 600 }}>{kdProgram}</div>
+                    <div style={{ marginTop: 2, fontSize: "9pt", color: "#334155" }}>Program :</div>
+                    <div style={{ fontWeight: 600 }}>{kdSubKegiatan}</div>
+                  </td>
+                  <td style={{ textAlign: "center", verticalAlign: "top", padding: "6px 4px" }}>
+                    <div style={{ fontWeight: 700 }}>Dinas Kesehatan Daerah</div>
+                    <div style={{ marginTop: 2, fontSize: "9pt", color: "#334155" }}>Kegiatan :</div>
+                    <div style={{ fontWeight: 600 }}>{kdKegiatan}.01.00</div>
+                  </td>
+                  <td style={{ borderRight: "none", textAlign: "center", verticalAlign: "top", padding: "6px 4px", fontWeight: 700 }}>
+                    {nm_upt || upt?.nm_upt || "BLUD Puskesmas"}
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+
+            {/* BAGIAN 5: TABEL RINCIAN PENDAPATAN & BELANJA */}
+            <table className="sp3b-table border-b-thick" style={{ fontSize: "9.5pt" }}>
+              <thead>
+                {/* Header Grup Utama */}
+                <tr>
+                  <th colSpan={2} style={{ borderLeft: "none", borderTop: "none", width: "50%", padding: "6px 4px", textAlign: "center", fontWeight: 800, fontSize: "10.5pt", letterSpacing: "0.5px" }}>
+                    PENDAPATAN
+                  </th>
+                  <th colSpan={2} style={{ borderRight: "none", borderTop: "none", width: "50%", padding: "6px 4px", textAlign: "center", fontWeight: 800, fontSize: "10.5pt", letterSpacing: "0.5px" }}>
+                    BELANJA
+                  </th>
+                </tr>
+                {/* Header Sub Kolom */}
+                <tr>
+                  <th style={{ borderLeft: "none", width: "24%", padding: "5px 4px", textAlign: "center", fontWeight: 700, fontSize: "9.5pt" }}>
+                    KODE REKENING
+                  </th>
+                  <th style={{ width: "26%", padding: "5px 4px", textAlign: "center", fontWeight: 700, fontSize: "9.5pt" }}>
+                    JUMLAH (RP)
+                  </th>
+                  <th style={{ width: "24%", padding: "5px 4px", textAlign: "center", fontWeight: 700, fontSize: "9.5pt" }}>
+                    KODE REKENING
+                  </th>
+                  <th style={{ borderRight: "none", width: "26%", padding: "5px 4px", textAlign: "center", fontWeight: 700, fontSize: "9.5pt" }}>
+                    JUMLAH (RP)
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {Array.from({ length: maxRows }).map((_, idx) => {
+                  const p = paddedPend[idx];
+                  const b = paddedBel[idx];
+                  return (
+                    <tr key={idx} style={{ height: 25 }}>
+                      <td style={{ borderLeft: "none", padding: "4px 6px", textAlign: "center", fontVariantNumeric: "tabular-nums" }}>
+                        {p ? p.kd_rek6 : ""}
+                      </td>
+                      <td style={{ padding: "4px 8px", textAlign: "right", fontVariantNumeric: "tabular-nums" }}>
+                        {p ? formatCurrencyRupiah(p.nilai) : ""}
+                      </td>
+                      <td style={{ padding: "4px 6px", textAlign: "center", fontVariantNumeric: "tabular-nums" }}>
+                        {b ? b.kd_rek6 : ""}
+                      </td>
+                      <td style={{ borderRight: "none", padding: "4px 8px", textAlign: "right", fontVariantNumeric: "tabular-nums" }}>
+                        {b ? formatCurrencyRupiah(b.nilai) : ""}
+                      </td>
+                    </tr>
+                  );
+                })}
+
+                {/* Baris Total */}
+                <tr style={{ fontWeight: 800, fontSize: "10pt" }}>
+                  <td style={{ borderLeft: "none", borderTop: "2px solid #000", padding: "6px 6px", textAlign: "left" }}>
+                    Jumlah Pendapatan (Rp)
+                  </td>
+                  <td style={{ borderTop: "2px solid #000", padding: "6px 8px", textAlign: "right", fontVariantNumeric: "tabular-nums" }}>
+                    {formatCurrencyRupiah(totalPend)}
+                  </td>
+                  <td style={{ borderTop: "2px solid #000", padding: "6px 6px", textAlign: "left" }}>
+                    Jumlah Belanja (Rp)
+                  </td>
+                  <td style={{ borderRight: "none", borderTop: "2px solid #000", padding: "6px 8px", textAlign: "right", fontVariantNumeric: "tabular-nums" }}>
+                    {formatCurrencyRupiah(totalBel)}
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+
+            {/* BAGIAN 6: BLOK TANDA TANGAN (PENGGUNA ANGGARAN KADINKES) */}
+            <div style={{ padding: "20px 24px 20px 24px", display: "flex", justifyContent: "flex-end", fontSize: "10.5pt", pageBreakInside: "avoid" }}>
+              <div style={{ textAlign: "center", minWidth: 260, maxWidth: 320 }}>
+                <div>Sipirok, {tglFormatted}</div>
+                <div style={{ fontWeight: 700, marginTop: 4 }}>PENGGUNA ANGGARAN</div>
+                <div style={{ fontWeight: 700, lineHeight: "1.3" }}>
+                  {jabatanPenandatangan}
+                </div>
+
+                {/* Spasi Tanda Tangan */}
+                <div style={{ height: 68 }} />
+
+                {/* Nama Pejabat */}
+                <div style={{ fontWeight: 700, textDecoration: "underline", letterSpacing: "0.2px" }}>
+                  {namaPenandatangan}
+                </div>
+
+                {/* Pangkat & Golongan (jika ada) */}
+                {pangkatPenandatangan && (
+                  <div style={{ fontSize: "9.5pt", marginTop: 1 }}>
+                    {pangkatPenandatangan}
+                  </div>
+                )}
+
+                {/* NIP */}
+                <div style={{ marginTop: 2, fontSize: "10pt" }}>
+                  {nipPenandatangan ? `NIP. ${nipPenandatangan}` : ""}
+                </div>
+              </div>
+            </div>
+          </div>
+        </article>
+      </main>
+
+      {/* Floating Action Button (FAB) Cetak Dokumen - Memudahkan cetak saat scroll dokumen */}
+      <div
+        className="no-print"
+        style={{
+          position: "fixed",
+          bottom: "28px",
+          right: "28px",
+          zIndex: 20,
+        }}
+      >
+        <button
+          onClick={() => window.print()}
+          className="btn-cetak-sp3b-fab"
+          style={{
+            display: "inline-flex",
+            alignItems: "center",
+            gap: "10px",
+            padding: "12px 22px",
+            backgroundColor: "#2563EB",
+            backgroundImage: "linear-gradient(135deg, #2563EB 0%, #1D4ED8 100%)",
+            color: "#FFFFFF",
+            fontSize: "13.5px",
+            fontWeight: 700,
+            borderRadius: "9999px",
+            border: "1px solid #60A5FA",
+            cursor: "pointer",
+            boxShadow: "0 8px 24px rgba(30, 58, 138, 0.5), 0 2px 6px rgba(37, 99, 235, 0.3)",
+            transition: "all 0.2s ease",
+            letterSpacing: "0.2px",
+          }}
+          title="Cetak Dokumen SP3B (Ctrl+P)"
+        >
+          <Printer size={18} />
+          <span>Cetak Dokumen</span>
+        </button>
       </div>
     </div>
   );
@@ -382,7 +862,10 @@ export default function CetakSp3bPage() {
   return (
     <Suspense fallback={
       <div style={{ minHeight: "100vh", backgroundColor: "#E2E8F0", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "sans-serif" }}>
-        Memuat halaman pratinjau SP3B...
+        <div style={{ textAlign: "center" }}>
+          <div style={{ width: 36, height: 36, border: "4px solid #2563EB", borderTopColor: "transparent", borderRadius: "50%", animation: "spin 1s linear infinite", margin: "0 auto 12px" }}></div>
+          <div style={{ fontSize: 13, fontWeight: 600, color: "#475569" }}>Memuat halaman cetak SP3B...</div>
+        </div>
       </div>
     }>
       <CetakSp3bContent />
